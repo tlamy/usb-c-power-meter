@@ -26,8 +26,8 @@ void setup() {
   pinMode(MY_BLUE_LED_PIN, OUTPUT);     // Initialise the LED_BUILTIN pin as an output
 
   u8g2.begin();
-  randomSeed(analogRead(A0)); 
-  
+  randomSeed(analogRead(A0));
+
   Wire.begin();
   ina226.init();
   ina226.setAverage(AVERAGE_4);
@@ -36,7 +36,7 @@ void setup() {
   ina226.setResistorRange(0.01,20.0);
   ina226.setCorrectionFactor(0.95); // must be aligned with good load
 
-  splash();  
+  splash();
 }
 
 char hexdigit(uint8_t nibble) {
@@ -68,7 +68,7 @@ void read_ina(int *shunt, int *millivolt) {
 //  float loadVoltage_V = 0.0;
   float busVoltage_V = 0.0;
   float current_mA = 0.0;
-//  float power_mW = 0.0; 
+//  float power_mW = 0.0;
 
   ina226.readAndClearFlags();
 //  shuntVoltage_mV = ina226.getShuntVoltage_mV();
@@ -76,7 +76,7 @@ void read_ina(int *shunt, int *millivolt) {
   current_mA = ina226.getCurrent_mA();
 //  power_mW = ina226.getBusPower();
 //  loadVoltage_V  = busVoltage_V + (shuntVoltage_mV/1000);
-  
+
 //  Serial.print("Shunt Voltage [mV]: "); Serial.println(shuntVoltage_mV);
 //  Serial.print("Bus Voltage [V]: "); Serial.println(busVoltage_V);
 //  Serial.print("Load Voltage [V]: "); Serial.println(loadVoltage_V);
@@ -162,7 +162,7 @@ void display(uint8_t volt_norm, int shunt, int maxcurrent) {
       u8g2.drawStr(90, 17,  "28V");
     else if(volt_norm == 36)
       u8g2.drawStr(100, 17,  "36V");
-    
+
     sprintf(buf, "%0.3fA", ((float)maxcurrent/1000.0));
     u8g2.drawStr(128-u8g2.getStrWidth(buf),33,buf);
 
@@ -170,7 +170,7 @@ void display(uint8_t volt_norm, int shunt, int maxcurrent) {
     float amps = ((float)shunt/1000.0);
     sprintf(buf2, "%0.3fA", amps);
     u8g2.drawStr(128-u8g2.getStrWidth(buf2),60,buf2);
-    
+
   } while ( u8g2.nextPage() );
 }
 void loop() {
@@ -195,5 +195,5 @@ uint8_t volt_norm = normalize_volt(millivolt);
 
   display(volt_norm, shunt, max_current);
 
-  delay(25);
+  delay(100);
 }
