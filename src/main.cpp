@@ -5,6 +5,9 @@
 #include <INA226_WE.h>
 #define INA_I2C_ADDRESS 0x41
 #define MY_BLUE_LED_PIN D4
+#define RELEASE_VERSION "1.1"
+
+#define DEBUG_LED_PEAK_DETECT 0
 
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0);
 INA226_WE ina226 = INA226_WE(&Wire, INA_I2C_ADDRESS);
@@ -15,13 +18,16 @@ void splash() {
   u8g2.setFont(u8g2_font_profont29_tr);
   sprintf(buf, "MacWake");
   u8g2.drawStr((u8g2.getDisplayWidth()-u8g2.getStrWidth(buf))/2, (u8g2.getDisplayHeight()/2)+u8g2.getFontAscent()/2, buf);
+  u8g2.setFont(u8g2_font_profont10_tf);
+  sprintf(buf, "V%s", RELEASE_VERSION);
+  u8g2.drawStr((u8g2.getDisplayWidth()-u8g2.getStrWidth(buf))/2, 127, buf);
   u8g2.nextPage();
   delay(1000);
 }
 void setup() {
   Serial.begin(9600);
   Serial.println();
-  Serial.println("MacWake USB-Power V1.0");
+  Serial.printf("MacWake USB-Power V%s\n", RELEASE_VERSION);
 
   pinMode(MY_BLUE_LED_PIN, OUTPUT);     // Initialise the LED_BUILTIN pin as an output
 
@@ -149,28 +155,35 @@ void display(uint8_t volt_norm, int shunt, int maxcurrent) {
   do {
     u8g2.setFont(u8g2_font_profont17_tf);
     if(volt_norm == 0)
-      u8g2.drawStr(0, 17,  "-");
+      u8g2.drawStr(0, 17,  "---");
     else if(volt_norm == 5)
       u8g2.drawStr(10, 17, "5V");
     else if(volt_norm == 9)
-      u8g2.drawStr(30, 17, "9V");
+      u8g2.drawStr(25, 17, "9V");
     else if(volt_norm == 15)
-      u8g2.drawStr(50, 17, "15V");
+      u8g2.drawStr(40, 17, "15V");
     else if(volt_norm == 20)
-      u8g2.drawStr(70, 17, "20V");
+      u8g2.drawStr(55, 17, "20V");
     else if(volt_norm == 28)
-      u8g2.drawStr(90, 17,  "28V");
+      u8g2.drawStr(70, 17,  "28V");
     else if(volt_norm == 36)
-      u8g2.drawStr(100, 17,  "36V");
+      u8g2.drawStr(85, 17,  "36V");
+    else if(volt_norm == 48)
+      u8g2.drawStr(100, 17,  "48V");
 
-    sprintf(buf, "%0.3fA", ((float)maxcurrent/1000.0));
-    u8g2.drawStr(128-u8g2.getStrWidth(buf),33,buf);
+    if(volt_norm > 0) {
+      float amps = ((float)shunt/1000.0);
+      u8g2.setFont(u8g2_font_profont12_tf);
+      sprintf(buf, "%0.3fA", ((float)maxcurrent/1000.0));
+      u8g2.drawStr(128-u8g2.getStrWidth(buf),30,buf);
+      u8g2.drawLine(128,31,128,33);
+      int bar = (int)((float)128 * (float)((float)shunt/(float)maxcurrent));
+      u8g2.drawLine(0,32,bar,32);
 
-    u8g2.setFont(u8g2_font_profont29_mf);
-    float amps = ((float)shunt/1000.0);
-    sprintf(buf2, "%0.3fA", amps);
-    u8g2.drawStr(128-u8g2.getStrWidth(buf2),60,buf2);
-
+      u8g2.setFont(u8g2_font_profont29_mf);
+      sprintf(buf2, "%0.3fA", amps);
+      u8g2.drawStr(128-u8g2.getStrWidth(buf2),62,buf2);
+  }
   } while ( u8g2.nextPage() );
 }
 void loop() {
