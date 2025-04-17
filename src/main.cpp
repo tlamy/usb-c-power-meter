@@ -5,7 +5,7 @@
 #include <INA226_WE.h>
 #define INA_I2C_ADDRESS 0x41
 #define MY_BLUE_LED_PIN D4
-#define RELEASE_VERSION "1.1.2"
+#define RELEASE_VERSION "1.1.3"
 
 #define DEBUG_LED_PEAK_DETECT 0
 #define DEBUG_INA 0
@@ -166,15 +166,43 @@ int get_max_current(int current, uint8_t volts) {
     return max_current;
 }
 
+void screensaver(int *x, int *y) {
+    static int last_x=1, last_y=2;
+    static signed char x_dir=3, y_dir=2;
+
+    *x = last_x+x_dir;
+    if (*x > 127) {
+        x_dir = -x_dir;
+        *x=126;
+    } else if (*x < 0) {
+        x_dir = -x_dir;
+        *x=0;
+    }
+    *y = last_y+y_dir;
+    if (*y > 63) {
+        y_dir = -y_dir;
+        *y=62;
+    } else if (*y < 0) {
+        y_dir = -y_dir;
+        *y=0;
+    }
+    last_x = *x;
+    last_y = *y;
+}
+
 void display(int millivolt, uint8_t volt_norm, int current, int maxcurrent) {
     char buf[32];
     char buf2[32];
+
     u8g2.firstPage();
     do {
         u8g2.setFont(u8g2_font_profont17_tf);
-        if (volt_norm == 0)
-            u8g2.drawStr(0, 17, "---");
-        else if (volt_norm == 5)
+        if (volt_norm == 0) {
+            int x,y;
+            screensaver(&x,&y);
+            u8g2.drawPixel(x,y);
+            //u8g2.drawStr(0, 17, "---");
+        } else if (volt_norm == 5)
             u8g2.drawStr(10, 17, "5V");
         else if (volt_norm == 9)
             u8g2.drawStr(25, 17, "9V");
