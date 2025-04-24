@@ -45,7 +45,7 @@ void setup() {
     ina226.setAverage(AVERAGE_16);
     ina226.setConversionTime(CONV_TIME_2116);
     ina226.setMeasureMode(CONTINUOUS);
-    ina226.setResistorRange(0.05, 5.0);
+    ina226.setResistorRange(0.01, 6.0);
     ina226.setCorrectionFactor(0.975); // must be aligned with good load
 
     splash();
