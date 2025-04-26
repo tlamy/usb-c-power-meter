@@ -5,7 +5,7 @@
 #include <INA226_WE.h>
 #define INA_I2C_ADDRESS 0x41
 #define MY_BLUE_LED_PIN D4
-#define RELEASE_VERSION "1.1.3"
+#define RELEASE_VERSION "1.1.3_10"
 
 #define DEBUG_LED_PEAK_DETECT 0
 #define DEBUG_INA 0
@@ -28,7 +28,7 @@ void splash() {
     sprintf(buf, "V%s", RELEASE_VERSION);
     u8g2.drawStr((u8g2.getDisplayWidth() - u8g2.getStrWidth(buf)) / 2, 62, buf);
     u8g2.nextPage();
-    delay(5000);
+    delay(1500);
 }
 
 void setup() {
@@ -249,5 +249,5 @@ void loop() {
 
     display(millivolt, volt_norm, current, max_current);
 
-    delay(100);
+    delay(50);
 }
