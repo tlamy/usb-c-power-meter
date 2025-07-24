@@ -1,17 +1,14 @@
 #include <Arduino.h>
-#include <SPI.h>
 #include <U8g2lib.h>
 #include <Wire.h>
-#include <INA226_WE.h>
+#include <INA228.h>
 #define INA_I2C_ADDRESS 0x41
-#define MY_BLUE_LED_PIN D4
-#define RELEASE_VERSION "1.1.3_10"
+#define RELEASE_VERSION "2.0.0"
 
-#define DEBUG_LED_PEAK_DETECT 0
-#define DEBUG_INA 0
+#define DEBUG_INA 1
 
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0);
-INA226_WE ina226 = INA226_WE(&Wire, INA_I2C_ADDRESS);
+INA228 ina228 = INA228( INA_I2C_ADDRESS,&Wire);
 
 void splash() {
     char buf[64];
@@ -36,18 +33,18 @@ void setup() {
     Serial.println();
     Serial.printf("MacWake USB-Power V%s\n", RELEASE_VERSION);
 
-    pinMode(MY_BLUE_LED_PIN, OUTPUT); // Initialise the LED_BUILTIN pin as an output
-
     u8g2.begin();
 
-    Wire.begin();
-    ina226.init();
-    ina226.setAverage(AVERAGE_16);
-    ina226.setConversionTime(CONV_TIME_2116);
-    ina226.setMeasureMode(CONTINUOUS);
-    ina226.setResistorRange(0.01, 6.0);
-    ina226.setCorrectionFactor(0.975); // must be aligned with good load
-
+    Wire.begin(PIN_WIRE_SDA,PIN_WIRE_SCL);
+    if (!ina228.begin()) {
+        Serial.println("Failed to initialize INA228!");
+    }
+    ina228.setMaxCurrentShunt(16.0, .01);
+    ina228.setAverage(INA228_16_SAMPLES);
+    ina228.setBusVoltageConversionTime(INA228_1052_us);
+    ina228.setShuntVoltageConversionTime(INA228_1052_us);
+    ina228.setTemperatureConversionTime(INA228_1052_us);
+    ina228.setMode(INA228_MODE_CONT_BUS_SHUNT);
     splash();
 }
 
@@ -82,12 +79,11 @@ void read_ina(int *shunt, int *millivolt, int *current) {
     float busVoltage_V = 0.0;
     float current_mA = 0.0;
 
-    ina226.readAndClearFlags();
-    shuntVoltage_mV = ina226.getShuntVoltage_mV();
-    busVoltage_V = ina226.getBusVoltage_V();
-    current_mA = ina226.getCurrent_mA();
+    shuntVoltage_mV = ina228.getShuntMilliVolt();
+    busVoltage_V = ina228.getBusVolt();
+    current_mA = ina228.getCurrent();
 #if DEBUG_INA
-    float power_mW = ina226.getBusPower();
+    float power_mW = ina228.getPower();
     float loadVoltage_V = busVoltage_V + (shuntVoltage_mV / 1000);
 
     Serial.print("Shunt Voltage [mV]: ");
@@ -100,15 +96,10 @@ void read_ina(int *shunt, int *millivolt, int *current) {
     Serial.println(current_mA);
     Serial.print("Bus Power [mW]: ");
     Serial.println(power_mW);
-    if (ina226.overflow) {
-        Serial.println("! OVERFLOW !");
-    }
-    if (ina226.convAlert) {
-        Serial.println("! CONVALERT !");
-    }
-    if (ina226.limitAlert) {
-        Serial.println("! LIMIT_ALERT !");
-    }
+    Serial.print("ADC Range: ");
+    Serial.println(ina228.getADCRange()?"41mV":"164 mV");
+    Serial.print("Charge [C]: ");
+    Serial.println(ina228.getCharge());
     Serial.println();
 #endif
     *shunt = static_cast<int>(shuntVoltage_mV);
@@ -237,8 +228,6 @@ void loop() {
     int millivolt;
     int shunt;
     int current;
-
-    digitalWrite(MY_BLUE_LED_PIN, HIGH); // Turn the LED on (Note that LOW is the voltage level
 
     read_ina(&shunt, &millivolt, &current);
     uint8_t volt_norm = normalize_volt(millivolt);
