@@ -87,45 +87,38 @@ uint8_t INA228::getAddress() {
 }
 
 
+inline float INA228::readSigned20bit(uint8_t registr) {
+    int32_t value = _readRegister(registr, 3) >> 4; // NOLINT(*-narrowing-conversions)
+    //  handle negative values (20 bit)
+    if ((value & 0x00080000) > 0) { value |= 0xFFF00000; } // NOLINT(*-narrowing-conversions)
+    return static_cast<float>(value);
+}
+
 ////////////////////////////////////////////////////////
 //
 //  CORE FUNCTIONS
 //
 //  PAGE 25
 float INA228::getBusVoltage() {
-    //  always positive, remove reserved bits.
-    int32_t value = _readRegister(INA228_BUS_VOLTAGE, 3) >> 4;
+    const float register_value = this->readSigned20bit(INA228_BUS_VOLTAGE);
     if (this->_error != 0) {
         Serial.printf("i2c error %d\n", this->_error);
     }
-    float bus_LSB = 195.3125e-6; //  195.3125 uV
-    float voltage = value * bus_LSB;
-    return voltage;
+    return register_value * 195.3125e-6F; //  195.3125 uV per bit
 }
 
 //  PAGE 25
 float INA228::getShuntVoltage() {
     //  shunt_LSB depends on ADCRANGE in INA228_CONFIG register.
     float shunt_LSB = this->_ADCRange ? 78.125e-9 : 312.5e-9;
-
-    //  remove reserved bits.
-    int32_t value = _readRegister(INA228_SHUNT_VOLTAGE, 3) >> 4;
-    //  handle negative values (20 bit)
-    if (value & 0x00080000) { value |= 0xFFF00000; }
-    float voltage = value * shunt_LSB;
-    return voltage;
+    const float register_value = this->readSigned20bit(INA228_SHUNT_VOLTAGE);
+    return register_value * shunt_LSB;
 }
 
 //  PAGE 25 + 8.1.2
 float INA228::getCurrent() {
-    //  remove reserved bits.
-    int32_t value = _readRegister(INA228_CURRENT, 3) >> 4;
-    //  handle negative values (20 bit)
-    if (value & 0x00080000) {
-        value |= 0xFFF00000;
-    }
-    float current = value * _current_LSB;
-    return current;
+    const float register_value = this->readSigned20bit(INA228_SHUNT_VOLTAGE);
+    return register_value * _current_LSB;
 }
 
 //  PAGE 26 + 8.1.2
@@ -138,8 +131,7 @@ float INA228::getPower() {
 //  PAGE 25
 float INA228::getTemperature() {
     uint32_t value = _readRegister(INA228_TEMPERATURE, 2);
-    float LSB = 7.8125e-3; //  milli degree Celsius
-    return value * LSB;
+    return static_cast<float>(value) * 7.8125e-3; //  milli degree Celsius
 }
 
 //  PAGE 26 + 8.1.2
@@ -175,10 +167,13 @@ void INA228::reset() {
 }
 
 bool INA228::setAccumulation(uint8_t value) {
-    if (value > 1) return false;
+    if (value > 1) {
+        return false;
+    }
     uint16_t reg = _readRegister(INA228_CONFIG, 2);
-    if (value == 1) reg |= INA228_CFG_RSTACC;
-    else reg &= ~INA228_CFG_RSTACC;
+    if (value == 1) { reg |= INA228_CFG_RSTACC;
+    } else { reg &= ~INA228_CFG_RSTACC;
+}
     _writeRegister(INA228_CONFIG, reg);
     return true;
 }
@@ -200,10 +195,11 @@ uint8_t INA228::getConversionDelay() {
     return (value >> 6) & 0xFF;
 }
 
-void INA228::setTemperatureCompensation(bool on) {
+void INA228::setTemperatureCompensation(bool enable) {
     uint16_t value = _readRegister(INA228_CONFIG, 2);
-    if (on) value |= INA228_CFG_TEMPCOMP;
-    else value &= ~INA228_CFG_TEMPCOMP;
+    if (enable) { value |= INA228_CFG_TEMPCOMP;
+    } else { value &= ~INA228_CFG_TEMPCOMP;
+}
     _writeRegister(INA228_CONFIG, value);
 }
 
@@ -220,8 +216,9 @@ void INA228::setADCRange(bool flag) {
     //  if (flag == _ADCRange) return;
     _ADCRange = flag;
     uint16_t value = _readRegister(INA228_CONFIG, 2);
-    if (flag) value |= INA228_CFG_ADCRANGE;
-    else value &= ~INA228_CFG_ADCRANGE;
+    if (flag) { value |= INA228_CFG_ADCRANGE;
+    } else { value &= ~INA228_CFG_ADCRANGE;
+}
     //  if value has not changed we do not need to write it back.
     _writeRegister(INA228_CONFIG, value);
 }
@@ -238,7 +235,8 @@ bool INA228::getADCRange() {
 //  CONFIG ADC REGISTER 1
 //
 bool INA228::setMode(uint8_t mode) {
-    if (mode > 0x0F) return false;
+    if (mode > 0x0F) { return false;
+}
     uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
     value &= ~INA228_ADC_MODE;
     value |= (mode << 12);
@@ -252,7 +250,8 @@ uint8_t INA228::getMode() {
 }
 
 bool INA228::setBusVoltageConversionTime(uint8_t bvct) {
-    if (bvct > 7) return false;
+    if (bvct > 7) { return false;
+}
     uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
     value &= ~INA228_ADC_VBUSCT;
     value |= (bvct << 9);
@@ -266,7 +265,8 @@ uint8_t INA228::getBusVoltageConversionTime() {
 }
 
 bool INA228::setShuntVoltageConversionTime(uint8_t svct) {
-    if (svct > 7) return false;
+    if (svct > 7) { return false;
+}
     uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
     value &= ~INA228_ADC_VSHCT;
     value |= (svct << 6);
@@ -280,7 +280,8 @@ uint8_t INA228::getShuntVoltageConversionTime() {
 }
 
 bool INA228::setTemperatureConversionTime(uint8_t tct) {
-    if (tct > 7) return false;
+    if (tct > 7) { return false;
+}
     uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
     value &= ~INA228_ADC_VTCT;
     value |= (tct << 3);
@@ -294,7 +295,8 @@ uint8_t INA228::getTemperatureConversionTime() {
 }
 
 bool INA228::setAverage(uint8_t avg) {
-    if (avg > 7) return false;
+    if (avg > 7) { return false;
+}
     uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
     value &= ~INA228_ADC_AVG;
     value |= avg;
@@ -314,7 +316,8 @@ uint8_t INA228::getAverage() {
 //
 int INA228::setMaxCurrentShunt(float maxCurrent, float shunt) {
     //  Shunt can be really small
-    if (shunt < 0.0001) return -2; //  TODO error code
+    if (shunt < 0.0001) { return -2; //  TODO error code
+}
     _maxCurrent = maxCurrent;
     _shunt = shunt;
     //_current_LSB = _maxCurrent * 1.9073486328125e-6F; //  pow(2, -19);
@@ -547,7 +550,7 @@ double INA228::_readRegisterF(uint8_t reg) {
     double value = 0;
 
     int32_t ival = 0;
-    if (5 == _wire->requestFrom(_address, (uint8_t) 5)) {
+    if (5 == _wire->requestFrom(_address, static_cast<uint8_t>(5))) {
         //  fetch 4 MSB bytes first.
         for (int i = 0; i < 4; i++) {
             ival <<= 8;
@@ -555,7 +558,6 @@ double INA228::_readRegisterF(uint8_t reg) {
         }
         value = ival;
         value *= 256;
-        //  note: mar05c
         uint8_t n = _wire->read();
         value += n;
 

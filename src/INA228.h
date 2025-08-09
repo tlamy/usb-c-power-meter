@@ -99,33 +99,35 @@ public:
   bool     isConnected();
   uint8_t  getAddress();
 
+  float readSigned20bit(uint8_t);
+
   //
   //  CORE FUNCTIONS + scale wrappers.
   //
   //       BUS VOLTAGE
   float    getBusVoltage();     //  Volt
   float    getBusVolt()         { return getBusVoltage(); };
-  float    getBusMilliVolt()    { return getBusVoltage()   * 1e3; };
-  float    getBusMicroVolt()    { return getBusVoltage()   * 1e6; };
+  float    getBusMilliVolt()    { return getBusVoltage()   * 1e3F; };
+  float    getBusMicroVolt()    { return getBusVoltage()   * 1e6F; };
 
   //       SHUNT VOLTAGE
   float    getShuntVoltage();   //  Volt
   float    getShuntVolt()       { return getShuntVoltage(); };
-  float    getShuntMilliVolt()  { return getShuntVoltage() * 1e3; };
-  float    getShuntMicroVolt()  { return getShuntVoltage() * 1e6; };
+  float    getShuntMilliVolt()  { return getShuntVoltage() * 1e3F; };
+  float    getShuntMicroVolt()  { return getShuntVoltage() * 1e6F; };
 
   //       SHUNT CURRENT
   float    getCurrent();        //  Ampere
   float    getAmpere()          { return getCurrent(); };
-  float    getMilliAmpere()     { return getCurrent()      * 1e3; };
-  float    getMicroAmpere()     { return getCurrent()      * 1e6; };
+  float    getMilliAmpere()     { return getCurrent()      * 1e3F; };
+  float    getMicroAmpere()     { return getCurrent()      * 1e6F; };
 
   //       POWER
   float    getPower();          //  Watt
   float    getWatt()            { return getPower(); };
-  float    getMilliWatt()       { return getPower()        * 1e3; };
-  float    getMicroWatt()       { return getPower()        * 1e6; };
-  float    getKiloWatt()        { return getPower()        * 1e-3; };
+  float    getMilliWatt()       { return getPower()        * 1e3F; };
+  float    getMicroWatt()       { return getPower()        * 1e6F; };
+  float    getKiloWatt()        { return getPower()        * 1e-3F; };
 
   //       TEMPERATURE
   float    getTemperature();    //  Celsius
@@ -159,7 +161,7 @@ public:
   //  Conversion delay in 0..255 steps of 2 ms
   void     setConversionDelay(uint8_t steps);
   uint8_t  getConversionDelay();
-  void     setTemperatureCompensation(bool on);
+  void     setTemperatureCompensation(bool enable);
   bool     getTemperatureCompensation();
   //  flag = false => 164 mV, true => 41 mV
   void     setADCRange(bool flag);
@@ -188,7 +190,7 @@ public:
   //  shunt >= 0.0001.
   //  returns _current_LSB;
   int      setMaxCurrentShunt(float maxCurrent, float shunt);
-  bool     isCalibrated()    { return _current_LSB != 0.0; };
+  bool     isCalibrated() const { return _current_LSB != 0.0; };
   float    getMaxCurrent();
   float    getShunt();
   float    getCurrentLSB();
