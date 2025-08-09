@@ -249,7 +249,7 @@ public:
 
 private:
   //  max 4 bytes
-  uint32_t _readRegister(uint8_t reg, uint8_t bytes);
+  uint32_t _readRegister(uint8_t reg, uint8_t bytecount);
   //  always 5 bytes
   double   _readRegisterF(uint8_t reg);
   uint16_t _writeRegister(uint8_t reg, uint16_t value);

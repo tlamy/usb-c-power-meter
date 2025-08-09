@@ -5,10 +5,10 @@
 #define INA_I2C_ADDRESS 0x41
 #define RELEASE_VERSION "2.0.0"
 
-#define DEBUG_INA 1
+#define DEBUG_INA 0
 
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0);
-INA228 ina228 = INA228( INA_I2C_ADDRESS,&Wire);
+INA228 ina228 = INA228(INA_I2C_ADDRESS, &Wire);
 
 void splash() {
     char buf[64];
@@ -28,23 +28,57 @@ void splash() {
     delay(1500);
 }
 
+void scan_i2c() {
+    uint8_t error, address;
+    int nDevices;
+    Serial.println("Scanning...");
+    nDevices = 0;
+    for (address = 1; address < 127; address++) {
+        // The i2c_scanner uses the return value of
+        // the Write.endTransmisstion to see if
+        // a device did acknowledge to the address.
+        Serial.printf("Connect to 0x%02x", address);
+        Wire.beginTransmission(address);
+        error = Wire.endTransmission();
+        if (error == 0) {
+            Serial.println(" FOUND");
+            nDevices++;
+        } else {
+            //Serial.println(" nope.");
+        }
+    }
+    Serial.printf("Found %d devices.\n", nDevices);
+}
+
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(115200);
     Serial.println();
     Serial.printf("MacWake USB-Power V%s\n", RELEASE_VERSION);
 
     u8g2.begin();
 
-    Wire.begin(PIN_WIRE_SDA,PIN_WIRE_SCL);
+    if (!Wire.begin(SDA_PIN,SCL_PIN)) {
+        Serial.println("Failed to initialize i2c!");
+    } else {
+        Serial.println("i2c init done.");
+    }
     if (!ina228.begin()) {
         Serial.println("Failed to initialize INA228!");
+        scan_i2c();
+        sleep(2);
+        esp_cpu_reset(0);
+    } else {
+        Serial.println("INA228 init done.");
     }
-    ina228.setMaxCurrentShunt(16.0, .01);
+    ina228.setADCRange(false);
+    ina228.setMaxCurrentShunt(10.0, 10e-3);
+    sleep(30);
     ina228.setAverage(INA228_16_SAMPLES);
-    ina228.setBusVoltageConversionTime(INA228_1052_us);
+    ina228.setBusVoltageConversionTime(INA228_50_us);
     ina228.setShuntVoltageConversionTime(INA228_1052_us);
-    ina228.setTemperatureConversionTime(INA228_1052_us);
+    ina228.setTemperatureConversionTime(INA228_50_us);
     ina228.setMode(INA228_MODE_CONT_BUS_SHUNT);
+    Serial.println("showing splash");
     splash();
 }
 
@@ -59,11 +93,11 @@ void int2hex(int16_t val, char *buf) {
     buf[3] = hexdigit((lowByte(val)) & 0x0f);
 }
 
-void serial_out(int milliamps, int millivolt) {
-    float shuntval = -milliamps / 0.2;
-    float voltval = millivolt / 3.125;
-    int16_t shunt_ser = shuntval;
-    int16_t volt_ser = voltval;
+void serial_out_pld(int milliamps, int millivolt) {
+    float shuntval = -milliamps / 0.2F;
+    float voltval = static_cast<float>(millivolt) / 3.125F;
+    int16_t shunt_ser = static_cast<int16_t>(shuntval);
+    int16_t volt_ser = static_cast<int16_t>(voltval);
 
     char buf[16];
     int2hex(shunt_ser, buf);
@@ -81,26 +115,25 @@ void read_ina(int *shunt, int *millivolt, int *current) {
 
     shuntVoltage_mV = ina228.getShuntMilliVolt();
     busVoltage_V = ina228.getBusVolt();
-    current_mA = ina228.getCurrent();
+    current_mA = ina228.getCurrent()*1000.0f;
 #if DEBUG_INA
-    float power_mW = ina228.getPower();
-    float loadVoltage_V = busVoltage_V + (shuntVoltage_mV / 1000);
+    float power_mW = ina228.getPower()*1000.0f;
+    //float loadVoltage_V = busVoltage_V + (shuntVoltage_mV / 1000);
 
     Serial.print("Shunt Voltage [mV]: ");
     Serial.println(shuntVoltage_mV);
     Serial.print("Bus Voltage [V]: ");
     Serial.println(busVoltage_V);
-    Serial.print("Load Voltage [V]: ");
-    Serial.println(loadVoltage_V);
+    //Serial.print("Load Voltage [V]: ");
+    //Serial.println(loadVoltage_V);
     Serial.print("Current[mA]: ");
     Serial.println(current_mA);
-    Serial.print("Bus Power [mW]: ");
-    Serial.println(power_mW);
-    Serial.print("ADC Range: ");
-    Serial.println(ina228.getADCRange()?"41mV":"164 mV");
-    Serial.print("Charge [C]: ");
-    Serial.println(ina228.getCharge());
+    // Serial.print("Bus Power [mW]: ");
+    // Serial.println(power_mW);
+    // Serial.print("Charge [C]: ");
+    // Serial.println(ina228.getCharge());
     Serial.println();
+    //sleep(1);
 #endif
     *shunt = static_cast<int>(shuntVoltage_mV);
     *millivolt = static_cast<int>(busVoltage_V * 1000.0);
@@ -181,10 +214,37 @@ void screensaver(int *x, int *y) {
     last_y = *y;
 }
 
+#define COUNTS 5
 void display(int millivolt, uint8_t volt_norm, int current, int maxcurrent) {
     char buf[32];
     char buf2[32];
+    static uint8_t counter=0;
+    static float currents[COUNTS];
+    static float display_current = -1;
+    currents[counter] = static_cast<float>(current);
+    counter = (counter + 1) % COUNTS;
+    if (counter == 0) {
+        display_current = 0.0;
+        for (float c : currents) {
+            if (c > display_current) display_current = c;
+        }
+    }
+    if (display_current == -1) {
+        display_current = static_cast<float>(current);
+    }
 
+    int bar_max;
+        if (maxcurrent < 100) {
+            bar_max = 100;
+        } else if (maxcurrent< 250) {
+            bar_max = 250;
+        } else if (maxcurrent < 500) {
+            bar_max = 500;
+        } else if (maxcurrent < 1000) {
+        bar_max = 1000;
+    } else {
+        bar_max = (1+(maxcurrent / 1000)) * 1000;
+    }
     u8g2.firstPage();
     do {
         u8g2.setFont(u8g2_font_profont17_tf);
@@ -209,13 +269,15 @@ void display(int millivolt, uint8_t volt_norm, int current, int maxcurrent) {
             u8g2.drawStr(100, 17, "48V");
 
         if (volt_norm > 0) {
-            float amps = ((float) current / 1000.0);
+            float amps = ((float) display_current / 1000.0f);
             u8g2.setFont(u8g2_font_profont12_tf);
             sprintf(buf, "%0.3fA", ((float) maxcurrent / 1000.0));
             u8g2.drawStr(127 - u8g2.getStrWidth(buf), 32, buf);
             u8g2.drawLine(127, 33, 127, 35);
-            int bar = (int) ((float) 128 * (float) ((float) current / (float) maxcurrent));
+            int bar = (int) ((float) 128 * (float) ((float) current / (float) bar_max));
             u8g2.drawLine(0, 34, bar, 34);
+            bar = (int) ((float) 128 * (float) ((float) display_current / (float) bar_max));
+            u8g2.drawLine(bar, 33, bar, 35);
 
             u8g2.setFont(u8g2_font_profont29_mf);
             sprintf(buf2, "%0.3fA", amps);
@@ -231,12 +293,12 @@ void loop() {
 
     read_ina(&shunt, &millivolt, &current);
     uint8_t volt_norm = normalize_volt(millivolt);
-
-    serial_out(current, millivolt);
-
+#if !  DEBUG_INA
+    serial_out_pld(current, millivolt);
+#endif
     int max_current = get_max_current(current, volt_norm);
 
     display(millivolt, volt_norm, current, max_current);
 
-    delay(50);
+    //delay(50);
 }
