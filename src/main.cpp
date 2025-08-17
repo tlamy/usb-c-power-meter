@@ -6,7 +6,7 @@
 #include "Display.h"
 #include "Bluetooth.h"
 #include "PowerSensor.h"
-#include "SerialOut.h" // Include the new Serial.h for the Serial class
+#include "SerialData.h" // Include the new Serial.h for the Serial class
 
 #define INA_I2C_ADDRESS 0x41
 #define RELEASE_VERSION "2.0.0"
@@ -22,7 +22,7 @@
 Display display;
 Bluetooth bluetooth("MacWake-UsbPowerMeter", SERVICE_UUID, CHARACTERISTIC_UUID);
 PowerSensor powerSensor(INA_I2C_ADDRESS, SDA_PIN, SCL_PIN, DEBUG_INA);
-SerialOut serialOutput; // Create an instance of the new Serial class
+SerialData serialOutput(Serial); // Pass the global Serial object to the constructor
 
 // Max current tracking for display
 #define AMP_BUF_SIZE 32
@@ -107,8 +107,6 @@ void setup() {
     Serial.println("Showing splash");
     display.splash(RELEASE_VERSION);
 }
-
-// Removed hexdigit and int2hex functions as they are now part of the Serial class
 
 void loop() {
     // Handle Bluetooth connections

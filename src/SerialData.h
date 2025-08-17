@@ -9,8 +9,10 @@
 #include "PowerSensor.h" // Include PowerSensor.h for PowerMeasurement struct
 #include <Arduino.h> // Include Arduino.h for int16_t, uint8_t
 
-class SerialOut {
+class SerialData {
 private:
+    HardwareSerial& serial; // Reference to the Serial object
+    
     // Helper function to convert a nibble to its hex character representation
     static inline char hexdigit(uint8_t nibble) {
         return nibble < 10 ? nibble + '0' : nibble - 10 + 'A';
@@ -25,6 +27,9 @@ private:
     }
 
 public:
+    // Constructor that takes a reference to the Serial object
+    explicit SerialData(HardwareSerial& serialRef);
+    
     // Method to output PowerMeasurement data to serial in a specific format
     void out_pld(PowerMeasurement measurement);
 };

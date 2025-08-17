@@ -3,10 +3,13 @@
 // SPDX-License-Identifier: MIT
 //
 
-#include "SerialOut.h"
+#include "SerialData.h"
 #include <Arduino.h> // Required for Serial.print, highByte, lowByte, etc.
 
-void SerialOut::out_pld(PowerMeasurement measurement) {
+SerialData::SerialData(HardwareSerial& serialRef) : serial(serialRef) {
+}
+
+void SerialData::out_pld(PowerMeasurement measurement) {
     float shuntval = measurement.shunt_mv / -0.2F;
     float voltval = measurement.voltage / 3125.0F;
     int16_t shunt_ser = static_cast<int16_t>(shuntval);
@@ -18,5 +21,5 @@ void SerialOut::out_pld(PowerMeasurement measurement) {
     buf[8] = 28;
     buf[9] = '\n';
     buf[10] = '\0';
-    ::Serial.print(buf); // Use ::Serial to distinguish from the Serial class
+    serial.print(buf); // Use the injected serial reference
 }
