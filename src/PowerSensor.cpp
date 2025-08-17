@@ -1,3 +1,8 @@
+//
+// Copyright (c) 2025 Thomas Lamy
+// SPDX-License-Identifier: MIT
+//
+
 #include "PowerSensor.h"
 
 PowerSensor::PowerSensor(uint8_t address, int sda, int scl, bool debug) 
@@ -9,18 +14,16 @@ bool PowerSensor::begin() {
     if (!Wire.begin(sda_pin, scl_pin)) {
         Serial.println("Failed to initialize I2C!");
         return false;
-    } else {
-        Serial.println("I2C init done.");
     }
-    
+    Serial.println("I2C init done.");
+
     // Initialize INA228
     if (!ina228.begin()) {
         Serial.println("Failed to initialize INA228!");
         return false;
-    } else {
-        Serial.println("INA228 init done.");
     }
-    
+    Serial.println("INA228 init done.");
+
     return true;
 }
 
@@ -48,6 +51,7 @@ PowerMeasurement PowerSensor::readMeasurement() {
     measurement.voltage = ina228.getBusVolt();
     measurement.current = ina228.getCurrent();
     measurement.temperature_c = ina228.getTemperature();
+    measurement.power = ina228.getPower();
     measurement.valid = true;
     
     if (debug_enabled) {
@@ -73,6 +77,10 @@ float PowerSensor::getTemperature() {
     return ina228.getTemperature();
 }
 
+float PowerSensor::getPower() {
+    return ina228.getPower();
+}
+
 void PowerSensor::printMeasurement(const PowerMeasurement& measurement) {
     if (!measurement.valid) {
         Serial.println("Invalid measurement");
@@ -82,10 +90,7 @@ void PowerSensor::printMeasurement(const PowerMeasurement& measurement) {
     Serial.printf("Shunt Voltage [mV]: %0.2f\n", measurement.shunt_mv);
     Serial.printf("Bus Voltage    [V]: %0.3f\n", measurement.voltage);
     Serial.printf("Current        [A]: %0.3f\n", measurement.current);
+    Serial.printf("Power          [W]: %0.3f\n", measurement.power);
     Serial.printf("Temperature   [°C]: %0.2f\n", measurement.temperature_c);
     Serial.println();
-}
-
-void PowerSensor::enableDebug(bool enable) {
-    debug_enabled = enable;
 }

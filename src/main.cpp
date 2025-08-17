@@ -1,13 +1,18 @@
+//
+// Copyright (c) 2025 Thomas Lamy
+// SPDX-License-Identifier: MIT
+//
 #include <Arduino.h>
 #include "Display.h"
 #include "Bluetooth.h"
 #include "PowerSensor.h"
+#include "SerialOut.h" // Include the new Serial.h for the Serial class
 
 #define INA_I2C_ADDRESS 0x41
 #define RELEASE_VERSION "2.0.0"
 #define DEBUG_INA 0
 #define DEBUG_BLE 1
-#define ENABLE_SERIAL_OUT 1
+#define ENABLE_SERIAL_OUT 0
 #define ENABLE_BLE_OUT 1
 
 #define SERVICE_UUID        "01bc9d6f-5b93-41bc-b63f-da5011e34f68"
@@ -17,6 +22,7 @@
 Display display;
 Bluetooth bluetooth("MacWake-UsbPowerMeter", SERVICE_UUID, CHARACTERISTIC_UUID);
 PowerSensor powerSensor(INA_I2C_ADDRESS, SDA_PIN, SCL_PIN, DEBUG_INA);
+SerialOut serialOutput; // Create an instance of the new Serial class
 
 // Max current tracking for display
 #define AMP_BUF_SIZE 32
@@ -102,31 +108,7 @@ void setup() {
     display.splash(RELEASE_VERSION);
 }
 
-char hexdigit(uint8_t nibble) {
-    return nibble < 10 ? nibble + '0' : nibble - 10 + 'A';
-}
-
-static inline void int2hex(int16_t val, char *buf) {
-    buf[0] = hexdigit((highByte(val) >> 4) & 0x0f);
-    buf[1] = hexdigit((highByte(val)) & 0x0f);
-    buf[2] = hexdigit((lowByte(val) >> 4) & 0x0f);
-    buf[3] = hexdigit((lowByte(val)) & 0x0f);
-}
-
-void serial_out_pld(PowerMeasurement measurement) {
-    float shuntval = measurement.shunt_mv / -0.2F;
-    float voltval = measurement.voltage / 3125.0F;
-    int16_t shunt_ser = static_cast<int16_t>(shuntval);
-    int16_t volt_ser = static_cast<int16_t>(voltval);
-
-    char buf[16];
-    int2hex(shunt_ser, buf);
-    int2hex(volt_ser, buf + 4);
-    buf[8] = 28;
-    buf[9] = '\n';
-    buf[10] = '\0';
-    Serial.print(buf);
-}
+// Removed hexdigit and int2hex functions as they are now part of the Serial class
 
 void loop() {
     // Handle Bluetooth connections
@@ -144,7 +126,7 @@ void loop() {
     // Send data via configured protocols
 #if !DEBUG_INA
 #if ENABLE_SERIAL_OUT
-    serial_out_pld(measurement);
+    serialOutput.out_pld(measurement); // Call the method on the serialOutput object
 #endif
 
 #if ENABLE_BLE_OUT
@@ -155,5 +137,5 @@ void loop() {
     // Update display
     display.display_measurements(measurement);
 
-    delay(10);
+    delay(100);
 }

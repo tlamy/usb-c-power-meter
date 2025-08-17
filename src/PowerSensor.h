@@ -1,6 +1,6 @@
-
 //
-// Created by Thomas Lamy on 09.08.25.
+// Copyright (c) 2025 Thomas Lamy
+// SPDX-License-Identifier: MIT
 //
 
 #ifndef USB_POWER_FIRMWARE_ESP8266_POWERSENSOR_H
@@ -26,9 +26,7 @@ private:
     int sda_pin;
     int scl_pin;
     bool debug_enabled;
-    
-    void scanI2C();
-    
+
 public:
     PowerSensor(uint8_t address, int sda, int scl, bool debug = false);
     
@@ -43,11 +41,11 @@ public:
     float getShuntMilliVolts();
     float getCurrent();
     float getTemperature();
-    
+    float getPower();
+
     // Utility methods
-    void printMeasurement(const PowerMeasurement& measurement);
-    void enableDebug(bool enable);
-    
+    static void printMeasurement(const PowerMeasurement& measurement);
+
     // Access to underlying INA228 if needed
     INA228& getINA228() { return ina228; }
 };

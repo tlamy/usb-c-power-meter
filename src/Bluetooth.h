@@ -1,5 +1,6 @@
 //
-// Created by Thomas Lamy on 09.08.25.
+// Copyright (c) 2025 Thomas Lamy
+// SPDX-License-Identifier: MIT
 //
 
 #ifndef USB_POWER_FIRMWARE_ESP8266_BLUETOOTH_H

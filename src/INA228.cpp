@@ -1,7 +1,5 @@
-//    FILE: INA228.cpp
-//  AUTHOR: Rob Tillaart
-// VERSION: 0.2.0
-//    DATE: 2024-05-09
+// Author: Rob Tillaart
+// SPDX-License-Identifier: MIT
 // PURPOSE: Arduino library for the INA228, I2C, 20 bit, voltage, current and power sensor.
 //     URL: https://github.com/RobTillaart/INA228
 //          https://www.adafruit.com/product/5832           ( 10 A version)
@@ -115,6 +113,10 @@ float INA228::getShuntVoltage() {
     return register_value * shunt_LSB;
 }
 
+int32_t INA228::getShuntVoltageRAW() {
+    return this->readSigned20bit(INA228_SHUNT_VOLTAGE);
+}
+
 //  PAGE 25 + 8.1.2
 float INA228::getCurrent() {
     const float register_value = this->readSigned20bit(INA228_SHUNT_VOLTAGE);
@@ -139,7 +141,7 @@ double INA228::getEnergy() {
     //  read 40 bit UNSIGNED as a double to prevent 64 bit integers
     //  double might be 8 or 4 byte, depends on platform
     //  40 bit ==> O(10^12)
-    double value = _readRegisterF(INA228_ENERGY);
+    double value = _readRegisterF(INA228_ENERGY, 'U');
     //  PAGE 31 (8.1.2)
     return value * (16 * 3.2) * _current_LSB;
 }
@@ -150,7 +152,7 @@ double INA228::getCharge() {
     //  read 40 bit SIGNED as a float to prevent 64 bit integers
     //  double might be 8 or 4 byte, depends on platform
     //  40 bit ==> O(10^12)
-    double value = _readRegisterF(INA228_CHARGE);
+    double value = _readRegisterF(INA228_CHARGE, 'S');
     //  PAGE 32 (8.1.2)
     return value * _current_LSB;
 }
@@ -171,9 +173,11 @@ bool INA228::setAccumulation(uint8_t value) {
         return false;
     }
     uint16_t reg = _readRegister(INA228_CONFIG, 2);
-    if (value == 1) { reg |= INA228_CFG_RSTACC;
-    } else { reg &= ~INA228_CFG_RSTACC;
-}
+    if (value == 1) {
+        reg |= INA228_CFG_RSTACC;
+    } else {
+        reg &= ~INA228_CFG_RSTACC;
+    }
     _writeRegister(INA228_CONFIG, reg);
     return true;
 }
@@ -197,9 +201,11 @@ uint8_t INA228::getConversionDelay() {
 
 void INA228::setTemperatureCompensation(bool enable) {
     uint16_t value = _readRegister(INA228_CONFIG, 2);
-    if (enable) { value |= INA228_CFG_TEMPCOMP;
-    } else { value &= ~INA228_CFG_TEMPCOMP;
-}
+    if (enable) {
+        value |= INA228_CFG_TEMPCOMP;
+    } else {
+        value &= ~INA228_CFG_TEMPCOMP;
+    }
     _writeRegister(INA228_CONFIG, value);
 }
 
@@ -212,15 +218,24 @@ bool INA228::getTemperatureCompensation() {
  *
  * @param flag true =
  */
-void INA228::setADCRange(bool flag) {
+bool INA228::setADCRange(bool flag) {
     //  if (flag == _ADCRange) return;
-    _ADCRange = flag;
     uint16_t value = _readRegister(INA228_CONFIG, 2);
-    if (flag) { value |= INA228_CFG_ADCRANGE;
-    } else { value &= ~INA228_CFG_ADCRANGE;
-}
+    _ADCRange = (value & INA228_CFG_ADCRANGE) > 0;
+    //  nothing changed ==> we're done.
+    if (flag == _ADCRange) {
+        return true;
+    }
+    _ADCRange = flag;
+    if (flag) {
+        value |= INA228_CFG_ADCRANGE;
+    } else {
+        value &= ~INA228_CFG_ADCRANGE;
+    }
     //  if value has not changed we do not need to write it back.
     _writeRegister(INA228_CONFIG, value);
+    // Fix the issue where shunt_cal was not modified
+    return setMaxCurrentShunt(getMaxCurrent(), getShunt()) == 0;
 }
 
 bool INA228::getADCRange() {
@@ -235,8 +250,9 @@ bool INA228::getADCRange() {
 //  CONFIG ADC REGISTER 1
 //
 bool INA228::setMode(uint8_t mode) {
-    if (mode > 0x0F) { return false;
-}
+    if (mode > 0x0F) {
+        return false;
+    }
     uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
     value &= ~INA228_ADC_MODE;
     value |= (mode << 12);
@@ -250,8 +266,9 @@ uint8_t INA228::getMode() {
 }
 
 bool INA228::setBusVoltageConversionTime(uint8_t bvct) {
-    if (bvct > 7) { return false;
-}
+    if (bvct > 7) {
+        return false;
+    }
     uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
     value &= ~INA228_ADC_VBUSCT;
     value |= (bvct << 9);
@@ -265,8 +282,9 @@ uint8_t INA228::getBusVoltageConversionTime() {
 }
 
 bool INA228::setShuntVoltageConversionTime(uint8_t svct) {
-    if (svct > 7) { return false;
-}
+    if (svct > 7) {
+        return false;
+    }
     uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
     value &= ~INA228_ADC_VSHCT;
     value |= (svct << 6);
@@ -280,8 +298,9 @@ uint8_t INA228::getShuntVoltageConversionTime() {
 }
 
 bool INA228::setTemperatureConversionTime(uint8_t tct) {
-    if (tct > 7) { return false;
-}
+    if (tct > 7) {
+        return false;
+    }
     uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
     value &= ~INA228_ADC_VTCT;
     value |= (tct << 3);
@@ -295,8 +314,9 @@ uint8_t INA228::getTemperatureConversionTime() {
 }
 
 bool INA228::setAverage(uint8_t avg) {
-    if (avg > 7) { return false;
-}
+    if (avg > 7) {
+        return false;
+    }
     uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
     value &= ~INA228_ADC_AVG;
     value |= avg;
@@ -316,8 +336,9 @@ uint8_t INA228::getAverage() {
 //
 int INA228::setMaxCurrentShunt(float maxCurrent, float shunt) {
     //  Shunt can be really small
-    if (shunt < 0.0001) { return -2; //  TODO error code
-}
+    if (shunt < 0.0001) {
+        return -2; //  TODO error code
+    }
     _maxCurrent = maxCurrent;
     _shunt = shunt;
     //_current_LSB = _maxCurrent * 1.9073486328125e-6F; //  pow(2, -19);
@@ -537,7 +558,7 @@ uint32_t INA228::_readRegister(uint8_t reg, uint8_t bytecount) {
 
 
 //  always 5 bytes
-double INA228::_readRegisterF(uint8_t reg) {
+double INA228::_readRegisterF(uint8_t reg, char mode) {
     _error = 0;
     _wire->beginTransmission(_address);
     _wire->write(reg);
@@ -551,22 +572,22 @@ double INA228::_readRegisterF(uint8_t reg) {
 
     int32_t ival = 0;
     if (5 == _wire->requestFrom(_address, static_cast<uint8_t>(5))) {
+        uint32_t val = 0;
         //  fetch 4 MSB bytes first.
         for (int i = 0; i < 4; i++) {
-            ival <<= 8;
-            ival |= _wire->read();
+            val <<= 8;
+            val |= _wire->read();
         }
-        value = ival;
+        //  handle signed / unsigned by casting.
+        if (mode == 'U') {
+            value = val;
+        } else {
+            value = (int32_t) val;
+        }
+        //  process last byte
         value *= 256;
         uint8_t n = _wire->read();
         value += n;
-
-        //  ORG
-        // for (int i = 0; i < bytes; i++)
-        // {
-        // value *= 256.0;
-        // value += _wire->read();
-        // }
     } else {
         _error = -2;
         return 0;
