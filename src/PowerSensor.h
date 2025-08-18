@@ -7,47 +7,48 @@
 #define USB_POWER_FIRMWARE_ESP8266_POWERSENSOR_H
 
 #include <Arduino.h>
-#include <Wire.h>
 #include <INA228.h>
+#include <Wire.h>
 
 struct PowerMeasurement {
-    float shunt_mv;
-    float voltage;
-    float current;
-    float power;
-    float temperature_c;
-    bool valid;
+  float shunt_mv;
+  float voltage;
+  float current;
+  float power;
+  float temperature_c;
+  bool valid;
 };
 
 class PowerSensor {
 private:
-    INA228 ina228;
-    uint8_t i2c_address;
-    int sda_pin;
-    int scl_pin;
-    bool debug_enabled;
+  INA228 *ina228; // Changed to pointer
+  uint8_t i2c_address;
+  TwoWire *wire; // Store reference to Wire instance
+  bool debug_enabled;
 
 public:
-    PowerSensor(uint8_t address, int sda, int scl, bool debug = false);
-    
-    bool begin();
-    bool isConnected();
-    void configure(float maxCurrent = 10.0, float shuntResistance = 10e-3);
-    
-    PowerMeasurement readMeasurement();
-    
-    // Individual measurement methods
-    float getBusVoltage();
-    float getShuntMilliVolts();
-    float getCurrent();
-    float getTemperature();
-    float getPower();
+  // Updated constructor to take Wire reference instead of pins
+  PowerSensor(uint8_t address, TwoWire &wireRef, bool debug = false);
+  ~PowerSensor(); // Added destructor to clean up pointer
 
-    // Utility methods
-    static void printMeasurement(const PowerMeasurement& measurement);
+  bool begin();
+  bool isConnected();
+  void configure(float maxCurrent = 10.0, float shuntResistance = 10e-3);
 
-    // Access to underlying INA228 if needed
-    INA228& getINA228() { return ina228; }
+  PowerMeasurement readMeasurement();
+
+  // Individual measurement methods
+  float getBusVoltage();
+  float getShuntMilliVolts();
+  float getCurrent();
+  float getTemperature();
+  float getPower();
+
+  // Utility methods
+  static void printMeasurement(const PowerMeasurement &measurement);
+
+  // Access to underlying INA228 if needed
+  INA228 &getINA228() { return *ina228; }
 };
 
-#endif //USB_POWER_FIRMWARE_ESP8266_POWERSENSOR_H
+#endif // USB_POWER_FIRMWARE_ESP8266_POWERSENSOR_H
