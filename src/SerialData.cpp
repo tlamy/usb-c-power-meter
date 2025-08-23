@@ -17,8 +17,8 @@ SerialData::SerialData(HWCDC &serialRef) : serial(&serialRef) {}
 #endif
 
 void SerialData::send_pld(PowerMeasurement measurement) {
-    float shuntval = measurement.shunt_mv / -0.2F;
-    float voltval = measurement.voltage / 3125.0F;
+    float shuntval = measurement.shunt_mv / -0.002F;
+    float voltval = measurement.voltage / .0031250F;
     int16_t shunt_ser = static_cast<int16_t>(shuntval);
     int16_t volt_ser = static_cast<int16_t>(voltval);
 
