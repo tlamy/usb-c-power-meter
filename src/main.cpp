@@ -21,7 +21,7 @@
 // Create instances
 SerialData serialOutput(Serial);
 Display *display;
-Bluetooth bluetooth("MacWake-UsbPowerMeter", SERVICE_UUID, CHARACTERISTIC_UUID);
+Bluetooth bluetooth("MacWake-USBPowerMeter", SERVICE_UUID, CHARACTERISTIC_UUID);
 PowerSensor *powerSensor;
 
 // Max current tracking for display
@@ -139,7 +139,7 @@ void loop() {
 #if !DEBUG_INA
 #if ENABLE_SERIAL_OUT
   serialOutput.out_pld(
-      measurement); // Call the method on the serialOutput object
+    measurement); // Call the method on the serialOutput object
 #endif
 
 #if ENABLE_BLE_OUT

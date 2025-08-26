@@ -35,16 +35,22 @@ private:
 
   // Private methods
   void screensaver(int *col, int *line);
+
   float get_max_current(float current, uint8_t volts);
 
 public:
   Display();
+
   ~Display(); // Destructor to clean up the u8g2 instance
 
   void begin(uint8_t sda, uint8_t scl);
+
   void drawStrCentered(int line, const char *buf);
+
   void drawStrRight(int line, const char *buf);
+
   void splash(const char *version);
+
   void display_measurements(PowerMeasurement measurement);
 };
 

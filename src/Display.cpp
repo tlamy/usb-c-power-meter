@@ -28,11 +28,11 @@ void Display::begin(uint8_t sda, uint8_t scl) {
   u8g2->begin();
 
   // Reset the current tracking arrays
-  for (float &last_current : last_currents) {
+  for (float &last_current: last_currents) {
     last_current = 0.0;
   }
 
-  for (float &current : currents) {
+  for (float &current: currents) {
     current = 0.0;
   }
 }
@@ -64,8 +64,8 @@ void Display::splash(const char *version) {
   u8g2->setFont(u8g2_font_profont12_tr);
   sprintf(buf, "USB Power Meter");
   u8g2->drawStr(
-      (u8g2->getDisplayWidth() - u8g2->getStrWidth(buf)) / 2,
-      (u8g2->getDisplayHeight() / 2) + (u8g2->getFontAscent() / 2) + 16, buf);
+    (u8g2->getDisplayWidth() - u8g2->getStrWidth(buf)) / 2,
+    (u8g2->getDisplayHeight() / 2) + (u8g2->getFontAscent() / 2) + 16, buf);
   u8g2->setFont(u8g2_font_profont10_tr);
   sprintf(buf, "V%s", version);
   drawStrCentered(62, buf);
@@ -122,7 +122,7 @@ static uint8_t normalize_volt(float voltage) {
 float Display::get_max_current(float current, uint8_t volts) {
   if (volts != last_volts) {
     current_ptr = 0;
-    for (float &last_current : last_currents) {
+    for (float &last_current: last_currents) {
       last_current = 0.0;
     }
     last_volts = volts;
@@ -132,7 +132,7 @@ float Display::get_max_current(float current, uint8_t volts) {
   if (max_current > 0.0 && last_currents[current_ptr] == max_current) {
     last_currents[current_ptr] = current;
     max_current = 0.0;
-    for (float last_current : last_currents) {
+    for (float last_current: last_currents) {
       max_current = std::max(last_current, max_current);
     }
   } else {
@@ -153,7 +153,7 @@ void Display::display_measurements(PowerMeasurement measurement) {
   counter = (counter + 1) % COUNTS;
   if (counter == 0) {
     display_current = 0.0;
-    for (float current : currents) {
+    for (float current: currents) {
       display_current = std::max(current, display_current);
     }
   }

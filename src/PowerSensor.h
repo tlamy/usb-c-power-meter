@@ -15,6 +15,7 @@ struct PowerMeasurement {
   float voltage;
   float current;
   float power;
+  double charge;
   float temperature_c;
   bool valid;
 };
@@ -29,20 +30,29 @@ private:
 public:
   // Updated constructor to take Wire reference instead of pins
   PowerSensor(uint8_t address, TwoWire &wireRef, bool debug = false);
+
   ~PowerSensor(); // Added destructor to clean up pointer
 
   bool begin();
+
   bool isConnected();
+
   void configure(float maxCurrent = 10.0, float shuntResistance = 10e-3);
 
   PowerMeasurement readMeasurement();
 
   // Individual measurement methods
   float getBusVoltage();
+
   float getShuntMilliVolts();
+
   float getCurrent();
+
   float getTemperature();
+
   float getPower();
+
+  double getCharge();
 
   // Utility methods
   static void printMeasurement(const PowerMeasurement &measurement);
