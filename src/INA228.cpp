@@ -119,7 +119,7 @@ int32_t INA228::getShuntVoltageRAW() {
 
 //  PAGE 25 + 8.1.2
 float INA228::getCurrent() {
-    const float register_value = this->readSigned20bit(INA228_SHUNT_VOLTAGE);
+    const float register_value = this->readSigned20bit(INA228_CURRENT);
     return register_value * _current_LSB;
 }
 
