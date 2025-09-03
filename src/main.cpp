@@ -24,13 +24,6 @@ Display *display;
 Bluetooth bluetooth("MacWake-USBPowerMeter", SERVICE_UUID, CHARACTERISTIC_UUID);
 PowerSensor *powerSensor;
 
-// Max current tracking for display
-#define AMP_BUF_SIZE 32
-uint8_t last_volts = 0;
-int last_currents[AMP_BUF_SIZE];
-uint8_t current_ptr = 0;
-int max_current = 0;
-
 void scanI2C() {
   Serial.println("Scanning I2C bus...");
   int nDevices = 0;
@@ -49,34 +42,6 @@ void scanI2C() {
   }
 
   Serial.printf("I2C scan complete. Found %d device(s).\n", nDevices);
-}
-
-int get_max_current(int current, uint8_t volts) {
-  if (volts != last_volts) {
-    current_ptr = 0;
-    for (int i = 0; i < AMP_BUF_SIZE; ++i) {
-      last_currents[i] = 0;
-    }
-    last_volts = volts;
-    max_current = 0;
-  }
-
-  if (max_current > 0 && last_currents[current_ptr] == max_current) {
-    last_currents[current_ptr] = current;
-    max_current = 0;
-    for (int i = 0; i < AMP_BUF_SIZE; ++i) {
-      if (last_currents[i] > max_current)
-        max_current = last_currents[i];
-    }
-  } else {
-    last_currents[current_ptr] = current;
-    if (current > max_current) {
-      max_current = current;
-    }
-  }
-
-  current_ptr = (current_ptr + 1) % AMP_BUF_SIZE;
-  return max_current;
 }
 
 void setup() {
@@ -150,5 +115,5 @@ void loop() {
   // Update display
   display->display_measurements(measurement);
 
-  delay(100);
+  //delay(10);
 }
