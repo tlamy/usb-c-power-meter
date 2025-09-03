@@ -38,16 +38,18 @@ void Display::begin(uint8_t sda, uint8_t scl) {
 }
 
 void Display::drawStrCentered(int line, const char *buf) {
-  if (u8g2 == nullptr)
+  if (u8g2 == nullptr) {
     return;
+}
 
   int width = u8g2->getStrWidth(buf);
   u8g2->drawStr((128 - width) / 2, line, buf);
 }
 
 void Display::drawStrRight(int line, const char *buf) {
-  if (u8g2 == nullptr)
+  if (u8g2 == nullptr) {
     return;
+}
 
   int width = u8g2->getStrWidth(buf);
   u8g2->drawStr(128 - width, line, buf);
@@ -156,9 +158,11 @@ void Display::display_measurements(PowerMeasurement measurement) {
     for (float current: currents) {
       display_current = std::max(current, display_current);
     }
+    display_power = measurement.power;
   }
   if (display_current == -1) {
     display_current = measurement.current;
+    display_power = measurement.power;
   }
   auto maxcurrent = get_max_current(measurement.current, volt_norm);
 
@@ -205,7 +209,7 @@ void Display::display_measurements(PowerMeasurement measurement) {
       // } else if (volt_norm == 48) {
       //     u8g2->drawStr(100, 17, "48V");
 
-      sprintf(buf, "%0.3fW", measurement.power);
+      sprintf(buf, "%0.3fW", display_power);
       drawStrRight(y_top, buf);
 
       float amps = display_current;
@@ -218,7 +222,7 @@ void Display::display_measurements(PowerMeasurement measurement) {
       u8g2->drawLine(127, y_bar - 1, 127, y_bar + 1);
       int bar = static_cast<int>(128.0F * measurement.current / bar_maxcurrent);
       u8g2->drawLine(0, y_bar, bar, y_bar);
-      bar = static_cast<int>(128.0F * display_current / bar_maxcurrent);
+      bar = static_cast<int>(128.0F * maxcurrent / bar_maxcurrent);
       u8g2->drawLine(bar, y_bar - 1, bar, y_bar + 1);
 
       u8g2->setFont(u8g2_font_profont29_mf);

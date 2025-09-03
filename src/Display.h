@@ -11,8 +11,8 @@
 
 #include "PowerSensor.h"
 
-#define COUNTS 5
-#define AMP_BUF_SIZE 32
+#define COUNTS 6
+#define AMP_BUF_SIZE 128
 
 class Display {
 private:
@@ -32,6 +32,7 @@ private:
   uint8_t counter = 0;
   float currents[COUNTS]{};
   float display_current = 0.0;
+  float display_power = 0.0;
 
   // Private methods
   void screensaver(int *col, int *line);
@@ -52,6 +53,10 @@ public:
   void splash(const char *version);
 
   void display_measurements(PowerMeasurement measurement);
+
+private:
+  int last_display_time = 0;
+  int last_valid_time = 0;
 };
 
 #endif // USB_POWER_FIRMWARE_ESP8266_DISPLAY_H
