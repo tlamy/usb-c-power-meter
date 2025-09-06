@@ -11,8 +11,8 @@
 #define INA_I2C_ADDRESS 0x41
 #define RELEASE_VERSION "2.0.0"
 #define DEBUG_INA 0
-#define DEBUG_BLE 1
-#define ENABLE_SERIAL_OUT 0
+#define DEBUG_BLE 0
+#define ENABLE_SERIAL_OUT 1
 #define ENABLE_BLE_OUT 1
 
 #define SERVICE_UUID "01bc9d6f-5b93-41bc-b63f-da5011e34f68"
@@ -103,8 +103,7 @@ void loop() {
   // Send data via configured protocols
 #if !DEBUG_INA
 #if ENABLE_SERIAL_OUT
-  serialOutput.out_pld(
-    measurement); // Call the method on the serialOutput object
+  serialOutput.out_pld( measurement);
 #endif
 
 #if ENABLE_BLE_OUT
