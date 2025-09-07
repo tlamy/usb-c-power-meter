@@ -46,9 +46,9 @@ public:
 
   void begin(uint8_t sda, uint8_t scl);
 
-  void drawStrCentered(int line, const char *buf);
-
+  void drawStrLeft(int line, const char *buf);
   void drawStrRight(int line, const char *buf);
+  void drawStrCentered(int line, const char *buf);
 
   void splash(const char *version);
 

@@ -21,18 +21,17 @@ Display::~Display() {
 void Display::begin(uint8_t sda, uint8_t scl) {
   // Create the u8g2 instance with the custom SDA and SCL pins
   // U8g2 will use the global Wire instance, but we can specify pins
-  u8g2 =
-      new U8G2_SH1106_128X64_NONAME_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE, scl, sda);
+  u8g2 = new U8G2_SH1106_128X64_NONAME_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE, scl, sda);
 
   // Initialize the display
   u8g2->begin();
 
   // Reset the current tracking arrays
-  for (float &last_current: last_currents) {
+  for (float &last_current : last_currents) {
     last_current = 0.0;
   }
 
-  for (float &current: currents) {
+  for (float &current : currents) {
     current = 0.0;
   }
 }
@@ -40,7 +39,7 @@ void Display::begin(uint8_t sda, uint8_t scl) {
 void Display::drawStrCentered(int line, const char *buf) {
   if (u8g2 == nullptr) {
     return;
-}
+  }
 
   int width = u8g2->getStrWidth(buf);
   u8g2->drawStr((128 - width) / 2, line, buf);
@@ -49,10 +48,17 @@ void Display::drawStrCentered(int line, const char *buf) {
 void Display::drawStrRight(int line, const char *buf) {
   if (u8g2 == nullptr) {
     return;
-}
+  }
 
   int width = u8g2->getStrWidth(buf);
   u8g2->drawStr(128 - width, line, buf);
+}
+void Display::drawStrLeft(int line, const char *buf) {
+  if (u8g2 == nullptr) {
+    return;
+  }
+
+  u8g2->drawStr(0, line, buf);
 }
 
 void Display::splash(const char *version) {
@@ -66,8 +72,8 @@ void Display::splash(const char *version) {
   u8g2->setFont(u8g2_font_profont12_tr);
   sprintf(buf, "USB Power Meter");
   u8g2->drawStr(
-    (u8g2->getDisplayWidth() - u8g2->getStrWidth(buf)) / 2,
-    (u8g2->getDisplayHeight() / 2) + (u8g2->getFontAscent() / 2) + 16, buf);
+      (u8g2->getDisplayWidth() - u8g2->getStrWidth(buf)) / 2,
+      (u8g2->getDisplayHeight() / 2) + (u8g2->getFontAscent() / 2) + 16, buf);
   u8g2->setFont(u8g2_font_profont10_tr);
   sprintf(buf, "V%s", version);
   drawStrCentered(62, buf);
@@ -124,7 +130,7 @@ static uint8_t normalize_volt(float voltage) {
 float Display::get_max_current(float current, uint8_t volts) {
   if (volts != last_volts) {
     current_ptr = 0;
-    for (float &last_current: last_currents) {
+    for (float &last_current : last_currents) {
       last_current = 0.0;
     }
     last_volts = volts;
@@ -134,7 +140,7 @@ float Display::get_max_current(float current, uint8_t volts) {
   if (max_current > 0.0 && last_currents[current_ptr] == max_current) {
     last_currents[current_ptr] = current;
     max_current = 0.0;
-    for (float last_current: last_currents) {
+    for (float last_current : last_currents) {
       max_current = std::max(last_current, max_current);
     }
   } else {
@@ -155,7 +161,7 @@ void Display::display_measurements(PowerMeasurement measurement) {
   counter = (counter + 1) % COUNTS;
   if (counter == 0) {
     display_current = 0.0;
-    for (float current: currents) {
+    for (float current : currents) {
       display_current = std::max(current, display_current);
     }
     display_power = measurement.power;
@@ -213,10 +219,10 @@ void Display::display_measurements(PowerMeasurement measurement) {
       drawStrRight(y_top, buf);
 
       float amps = display_current;
-      u8g2->setFont(u8g2_font_profont10_tr);
+      u8g2->setFont(u8g2_font_profont12_tr);
 
-      sprintf(buf, "M:%0.3fA", maxcurrent);
-      drawStrCentered(y_line2, buf);
+      sprintf(buf, "Max:%0.3fA", maxcurrent);
+      drawStrLeft(y_line2, buf);
       sprintf(buf, "%0.2fA", bar_maxcurrent);
       drawStrRight(y_line2, buf);
       u8g2->drawLine(127, y_bar - 1, 127, y_bar + 1);
