@@ -46,13 +46,13 @@ public:
 
   void begin(uint8_t sda, uint8_t scl);
 
-  void drawStrLeft(int line, const char *buf);
-  void drawStrRight(int line, const char *buf);
-  void drawStrCentered(int line, const char *buf);
+  void drawStrLeft(int line, const char *buf) const;
+  void drawStrRight(int line, const char *buf) const;
+  void drawStrCentered(int line, const char *buf) const;
 
-  void splash(const char *version);
+  void splash(const char *version) const;
 
-  void display_measurements(PowerMeasurement measurement);
+  void display_measurements(const PowerMeasurement &measurement);
 
 private:
   int last_display_time = 0;

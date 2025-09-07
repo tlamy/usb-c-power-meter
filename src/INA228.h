@@ -96,7 +96,7 @@ public:
 
     bool isConnected();
 
-    uint8_t getAddress();
+    uint8_t getAddress() const;
 
     float readSigned20bit(uint8_t);
 
@@ -212,11 +212,11 @@ public:
 
     bool isCalibrated() const { return _current_LSB != 0.0; };
 
-    float getMaxCurrent();
+    float getMaxCurrent() const;
 
-    float getShunt();
+    float getShunt() const;
 
-    float getCurrentLSB();
+    float getCurrentLSB() const;
 
     //
     //  SHUNT TEMPERATURE COEFFICIENT REGISTER 3
@@ -300,7 +300,7 @@ private:
     float _current_LSB;
     float _shunt;
     float _maxCurrent;
-    bool _ADCRange;
+    bool _ADCRange = false;
 
     uint8_t _address;
     TwoWire *_wire;

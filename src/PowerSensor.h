@@ -35,24 +35,24 @@ public:
 
   bool begin();
 
-  bool isConnected();
+  bool isConnected() const;
 
-  void configure(float maxCurrent = 10.0, float shuntResistance = 10e-3);
+  void configure(float maxCurrent = 10.0, float shuntResistance = 10e-3) const;
 
-  PowerMeasurement readMeasurement();
+  PowerMeasurement readMeasurement() const;
 
   // Individual measurement methods
-  float getBusVoltage();
+  float getBusVoltage() const;
 
-  float getShuntMilliVolts();
+  float getShuntMilliVolts() const;
 
-  float getCurrent();
+  float getCurrent() const;
 
-  float getTemperature();
+  float getTemperature() const;
 
-  float getPower();
+  float getPower() const;
 
-  double getCharge();
+  double getCharge() const;
 
   // Utility methods
   static void printMeasurement(const PowerMeasurement &measurement);

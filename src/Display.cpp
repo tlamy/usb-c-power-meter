@@ -5,9 +5,7 @@
 
 #include "Display.h"
 
-// Constructor
 Display::Display() : u8g2(nullptr) {
-  // We'll fully initialize u8g2 in begin()
 }
 
 // Destructor - clean up the u8g2 instance
@@ -36,7 +34,7 @@ void Display::begin(uint8_t sda, uint8_t scl) {
   }
 }
 
-void Display::drawStrCentered(int line, const char *buf) {
+void Display::drawStrCentered(int line, const char *buf) const {
   if (u8g2 == nullptr) {
     return;
   }
@@ -45,7 +43,7 @@ void Display::drawStrCentered(int line, const char *buf) {
   u8g2->drawStr((128 - width) / 2, line, buf);
 }
 
-void Display::drawStrRight(int line, const char *buf) {
+void Display::drawStrRight(int line, const char *buf) const {
   if (u8g2 == nullptr) {
     return;
   }
@@ -53,7 +51,7 @@ void Display::drawStrRight(int line, const char *buf) {
   int width = u8g2->getStrWidth(buf);
   u8g2->drawStr(128 - width, line, buf);
 }
-void Display::drawStrLeft(int line, const char *buf) {
+void Display::drawStrLeft(int line, const char *buf) const {
   if (u8g2 == nullptr) {
     return;
   }
@@ -61,7 +59,7 @@ void Display::drawStrLeft(int line, const char *buf) {
   u8g2->drawStr(0, line, buf);
 }
 
-void Display::splash(const char *version) {
+void Display::splash(const char *version) const {
   char buf[64];
   u8g2->firstPage();
   u8g2->setFont(u8g2_font_profont29_tr);
@@ -84,18 +82,18 @@ void Display::splash(const char *version) {
 void Display::screensaver(int *col, int *line) {
   *col = last_x + x_dir;
   if (*col > 127) {
-    x_dir = -x_dir;
+    x_dir = -x_dir; // NOLINT(*-narrowing-conversions)
     *col = 126;
   } else if (*col < 0) {
-    x_dir = -x_dir;
+    x_dir = -x_dir; // NOLINT(*-narrowing-conversions)
     *col = 0;
   }
   *line = last_y + y_dir;
   if (*line > 63) {
-    y_dir = -y_dir;
+    y_dir = -y_dir; // NOLINT(*-narrowing-conversions)
     *line = 62;
   } else if (*line < 0) {
-    y_dir = -y_dir;
+    y_dir = -y_dir; // NOLINT(*-narrowing-conversions)
     *line = 0;
   }
   last_x = *col;
@@ -151,7 +149,7 @@ float Display::get_max_current(float current, uint8_t volts) {
   return max_current;
 }
 
-void Display::display_measurements(PowerMeasurement measurement) {
+void Display::display_measurements(const PowerMeasurement &measurement) {
   char buf[32];
   char buf2[32];
 
@@ -189,13 +187,13 @@ void Display::display_measurements(PowerMeasurement measurement) {
   u8g2->firstPage();
   do {
     if (volt_norm == 0) {
-      int x;
-      int y;
-      screensaver(&x, &y);
-      u8g2->drawPixel(x, y);
+      int col;
+      int row;
+      screensaver(&col, &row);
+      u8g2->drawPixel(col, row);
     } else {
       u8g2->setFont(u8g2_font_profont17_tr);
-      u8g2_uint_t y_top = u8g2->getFontAscent();
+      signed char y_top = u8g2->getFontAscent();
       u8g2_uint_t y_line2 = 31;
       u8g2_uint_t y_bar = 36;
       sprintf(buf, "%dV", volt_norm);

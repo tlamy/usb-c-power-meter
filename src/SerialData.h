@@ -30,7 +30,7 @@ public:
 #endif
 
   // Method to output PowerMeasurement data to serial in a specific format
-  void out_pld(PowerMeasurement measurement);
+  void out_pld(const PowerMeasurement &measurement) const;
 };
 
 #endif // USB_POWER_FIRMWARE_ESP8266_SERIAL_H

@@ -6,17 +6,15 @@
 #ifndef USB_POWER_FIRMWARE_ESP8266_BLUETOOTH_H
 #define USB_POWER_FIRMWARE_ESP8266_BLUETOOTH_H
 
-#include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
-#include <BLE2902.h>
 #include <Arduino.h>
 #include "PowerSensor.h"
 
 class Bluetooth {
 private:
-    BLEServer *pServer;
-    BLECharacteristic *pCharacteristic;
+    BLEServer *pServer = nullptr;
+    BLECharacteristic *pCharacteristic = nullptr;
     bool deviceConnected;
     bool oldDeviceConnected;
 
@@ -30,7 +28,7 @@ private:
         Bluetooth *bluetooth;
 
     public:
-        ServerCallbacks(Bluetooth *bt) : bluetooth(bt) {
+        explicit ServerCallbacks(Bluetooth *bt) : bluetooth(bt) { // NOLINT(*-identifier-length)
         }
 
         void onConnect(BLEServer *bleServer) override {
@@ -44,7 +42,7 @@ private:
         }
     };
 
-    ServerCallbacks *serverCallbacks;
+    ServerCallbacks *serverCallbacks = nullptr;
 
 public:
     Bluetooth(const char *name, const char *serviceId, const char *characteristicId);
@@ -58,8 +56,6 @@ public:
     bool isConnected() const;
 
     void sendData(const PowerMeasurement &measurement) const;
-
-    void sendRawData(const char *data);
 };
 
 #endif //USB_POWER_FIRMWARE_ESP8266_BLUETOOTH_H

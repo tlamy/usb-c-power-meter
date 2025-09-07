@@ -1,10 +1,10 @@
 #include "PowerSensor.h"
 
 PowerSensor::PowerSensor(uint8_t address, TwoWire &wireRef, bool debug)
-    : i2c_address(address),
+    : ina228(nullptr),
+      i2c_address(address),
       wire(&wireRef),
-      debug_enabled(debug),
-      ina228(nullptr) {
+      debug_enabled(debug) {
 }
 
 PowerSensor::~PowerSensor() {
@@ -16,7 +16,7 @@ PowerSensor::~PowerSensor() {
 
 bool PowerSensor::begin() {
     Serial.println("Initializing INA228...");
-    // Create INA228 instance with the provided Wire reference
+    // Create an INA228 instance with the provided Wire reference
     ina228 = new INA228(i2c_address, wire);
 
     if (debug_enabled) {
@@ -33,14 +33,14 @@ bool PowerSensor::begin() {
     return true;
 }
 
-bool PowerSensor::isConnected() {
+bool PowerSensor::isConnected() const {
     if (ina228 == nullptr) {
         return false;
     }
     return ina228->isConnected();
 }
 
-void PowerSensor::configure(float maxCurrent, float shuntResistance) {
+void PowerSensor::configure(float maxCurrent, float shuntResistance) const {
     if (ina228 == nullptr) {
         return;
     }
@@ -48,7 +48,7 @@ void PowerSensor::configure(float maxCurrent, float shuntResistance) {
     ina228->setMaxCurrentShunt(maxCurrent, shuntResistance);
 }
 
-PowerMeasurement PowerSensor::readMeasurement() {
+PowerMeasurement PowerSensor::readMeasurement() const {
     PowerMeasurement measurement = {0};
     measurement.valid = false;
 
@@ -67,18 +67,18 @@ PowerMeasurement PowerSensor::readMeasurement() {
     return measurement;
 }
 
-float PowerSensor::getBusVoltage() { return ina228->getBusVoltage(); }
+float PowerSensor::getBusVoltage() const { return ina228->getBusVoltage(); }
 
-float PowerSensor::getShuntMilliVolts() {
+float PowerSensor::getShuntMilliVolts() const {
     return ina228->getShuntVoltage() * 1000; // Convert to millivolts
 }
 
-float PowerSensor::getCurrent() { return ina228->getCurrent(); }
+float PowerSensor::getCurrent() const { return ina228->getCurrent(); }
 
-float PowerSensor::getTemperature() { return ina228->getTemperature(); }
+float PowerSensor::getTemperature() const { return ina228->getTemperature(); }
 
-float PowerSensor::getPower() { return ina228->getPower(); }
-double PowerSensor::getCharge() { return ina228->getCharge(); }
+float PowerSensor::getPower() const { return ina228->getPower(); }
+double PowerSensor::getCharge() const { return ina228->getCharge(); }
 
 void PowerSensor::printMeasurement(const PowerMeasurement &measurement) {
     Serial.println("Power Measurement:");

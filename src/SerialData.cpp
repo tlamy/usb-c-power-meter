@@ -28,11 +28,11 @@ static inline void int2hex(int16_t val, char *buf) {
     buf[3] = hexdigit((lowByte(val)) & 0x0f);
 }
 
-void SerialData::out_pld(PowerMeasurement measurement) {
+void SerialData::out_pld(const PowerMeasurement &measurement) const {
     float shuntval = measurement.shunt_mv / -0.002F;
     float voltval = measurement.voltage / 0.0031250F;
-    int16_t shunt_ser = static_cast<int16_t>(shuntval);
-    int16_t volt_ser = static_cast<int16_t>(voltval);
+    auto shunt_ser = static_cast<int16_t>(shuntval);
+    auto volt_ser = static_cast<int16_t>(voltval);
 
     //serial->printf("sv=%f vv=%f sw=%04x vw=%04x\n", shuntval,voltval,shunt_ser,volt_ser);
     char buf[16];
