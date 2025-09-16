@@ -5,7 +5,7 @@
 #include <INA226_WE.h>
 #define INA_I2C_ADDRESS 0x41
 #define MY_BLUE_LED_PIN D4
-#define RELEASE_VERSION "1.1.3_10"
+#define RELEASE_VERSION "1.2.1"
 
 #define DEBUG_LED_PEAK_DETECT 0
 #define DEBUG_INA 0
