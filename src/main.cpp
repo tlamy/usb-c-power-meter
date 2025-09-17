@@ -11,7 +11,7 @@
 #define DEBUG_INA 0
 
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0);
-INA226_WE ina226 = INA226_WE(&Wire, INA_I2C_ADDRESS);
+INA226_WE ina226;
 
 void splash() {
     char buf[64];
@@ -31,17 +31,67 @@ void splash() {
     delay(1500);
 }
 
+static void scan_i2c() {
+    uint8_t error, address;
+    int nDevices;
+    Serial.println("Scanning for devices...");
+    nDevices = 0;
+    for (address = 1; address < 127; address++) {
+        Wire.beginTransmission(address);
+        error = Wire.endTransmission();
+        if (error == 0) {
+            nDevices++;
+            Serial.print("I2C device found at address 0x");
+            if (address < 16)
+                Serial.print("0");
+            Serial.println(address, HEX);
+        }
+    }
+    Serial.println("done\n");
+    Serial.print("Found ");
+    Serial.print(nDevices);
+    Serial.println(" devices.");
+}
+
+static uint8_t findInaAddress() {
+    uint8_t error, address;
+
+    for (address = 0x40; address < 0x48; address++) {
+        Wire.beginTransmission(address);
+        error = Wire.endTransmission();
+        if (error == 0) {
+            return address;
+        }
+    }
+    return 0;
+}
 void setup() {
     Serial.begin(9600);
     Serial.println();
     Serial.printf("MacWake USB-Power V%s\n", RELEASE_VERSION);
 
-    pinMode(MY_BLUE_LED_PIN, OUTPUT); // Initialise the LED_BUILTIN pin as an output
+    pinMode(MY_BLUE_LED_PIN, OUTPUT); // Initialize the LED_BUILTIN pin as an output
 
     u8g2.begin();
 
     Wire.begin();
-    ina226.init();
+
+    uint8_t ina_address = findInaAddress();
+    if (ina_address == 0) {
+        Serial.println("INA226 not found");
+        scan_i2c();
+        delay(10000);
+        while (1)
+            ; // halt
+    }
+    ina226 = INA226_WE(&Wire, ina_address);
+    if (!ina226.init()) {
+        Serial.println("INA226 init failed");
+        scan_i2c();
+        delay(10000);
+        while (1)
+            ; // halt
+    }
     ina226.setAverage(AVERAGE_16);
     ina226.setConversionTime(CONV_TIME_2116);
     ina226.setMeasureMode(CONTINUOUS);

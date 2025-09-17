@@ -19,7 +19,7 @@
 bool INA226_WE::init(){
     _wire->beginTransmission(i2cAddress);
     if(_wire->endTransmission()){
-        return 0;
+        return false;
     }
     reset_INA226();
     calVal = 2048; // default
@@ -37,7 +37,7 @@ bool INA226_WE::init(){
     limitAlert = false;
     corrFactor = 1.0;
     i2cErrorCode = 0;
-    return 1;
+    return true;
 }
 
 void INA226_WE::reset_INA226(){
