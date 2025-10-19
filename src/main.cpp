@@ -9,7 +9,7 @@
 #include <Arduino.h>
 
 #define INA_I2C_ADDRESS 0x41
-#define RELEASE_VERSION "2.0.0"
+#define RELEASE_VERSION "2.2.0a01"
 #define DEBUG_INA 0
 #define DEBUG_BLE 0
 #define ENABLE_SERIAL_OUT 1
@@ -21,7 +21,9 @@
 // Create instances
 SerialData serialOutput(Serial);
 Display *display;
-Bluetooth bluetooth("MacWake-USBPowerMeter", SERVICE_UUID, CHARACTERISTIC_UUID);
+uint32_t chipId = ESP.getEfuseMac();
+String deviceName = "MacWake PowerMeter " + String(chipId & 0xffff, HEX);
+Bluetooth bluetooth(deviceName.c_str(), SERVICE_UUID, CHARACTERISTIC_UUID);
 PowerSensor *powerSensor;
 
 void scanI2C() {
