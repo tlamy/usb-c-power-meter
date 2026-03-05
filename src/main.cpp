@@ -3,10 +3,12 @@
 // SPDX-License-Identifier: MIT
 //
 #include <Arduino.h>
+#include <Preferences.h>
 
 #include "Bluetooth.h"
 #include "Display.h"
 #include "PowerSensor.h"
+#include "SerialConsole.h"
 #include "SerialData.h"  // Include the new Serial.h for the Serial class
 
 #define INA_I2C_ADDRESS 0x41
@@ -24,6 +26,7 @@
 
 // Create instances
 SerialData serialOutput(Serial);
+SerialConsole console(Serial);
 Display* display;
 uint32_t chipId = ESP.getEfuseMac();
 String deviceName = "MacWake PowerMeter " + String(chipId & 0xffff, HEX);
@@ -114,6 +117,28 @@ void runDiagnostics() {
   delay(5000);  // Give time to read
 }
 
+static constexpr uint16_t kPrefsNotSet = 0xFFFF;
+static constexpr const char* kPrefsNamespace = "ina228";
+
+static void applyStoredCalibration() {
+  Preferences prefs;
+  prefs.begin(kPrefsNamespace, /*readOnly=*/true);
+  const uint16_t shuntCal = prefs.getUShort("shunt_cal", kPrefsNotSet);
+  const uint16_t tempCoeff = prefs.getUShort("temp_coeff", kPrefsNotSet);
+  prefs.end();
+
+  INA228& ina = powerSensor->getINA228();
+  if (shuntCal != kPrefsNotSet) {
+    ina.setShuntCal(shuntCal);
+    Serial.printf("NVRAM: SHUNT_CAL = %u\n", shuntCal);
+  }
+  if (tempCoeff != kPrefsNotSet) {
+    ina.setShuntTemperatureCoefficent(tempCoeff);
+    Serial.printf("NVRAM: SHUNT_TEMP_COEFF = %u ppm\n", tempCoeff);
+  }
+  ina.setTemperatureCompensation(true);
+}
+
 void setup() {
   pinMode(DIAG_PIN, INPUT_PULLUP);
   Serial.begin(115200);
@@ -150,8 +175,9 @@ void setup() {
     Serial.println("Failed to initialize PowerSensor!");
   }
 
-  // Configure power sensor
+  // Configure power sensor, then apply any stored calibration overrides
   powerSensor->configure(MAX_CURRENT, SHUNT_RESISTANCE);
+  applyStoredCalibration();
 
   // scanI2C();
 
@@ -164,9 +190,76 @@ void setup() {
   // Show splash screen
   Serial.println("Showing splash");
   display->splash(RELEASE_VERSION);
+
+  // Register serial console commands
+  console.registerCommand("scan", "scan I2C bus and list devices", [](const SerialConsole::Args&) { scanI2C(true); });
+  console.registerCommand("measure", "print a single measurement",
+                          [](const SerialConsole::Args&) { PowerSensor::printMeasurement(powerSensor->readMeasurement()); });
+  console.registerCommand("m", "alias for measure",
+                          [](const SerialConsole::Args&) { PowerSensor::printMeasurement(powerSensor->readMeasurement()); });
+  console.registerCommand("diag", "run full diagnostics (I2C scan + display)",
+                          [](const SerialConsole::Args&) { runDiagnostics(); });
+  console.registerCommand("reset", "reboot the device", [](const SerialConsole::Args&) {
+    Serial.println("Rebooting...");
+    Serial.flush();
+    ESP.restart();
+  });
+  console.registerCommand("tempcal", "show or set SHUNT_CAL / SHUNT_TEMP_COEFF  |  tempcal [cal <n> | coeff <n> | reset]",
+                          [](const SerialConsole::Args& args) {
+                            INA228& ina = powerSensor->getINA228();
+
+                            if (args.size() == 1) {
+                              // Show current register values + live readings
+                              const PowerMeasurement m = powerSensor->readMeasurement();
+                              Serial.printf("SHUNT_CAL:        %u\n", ina.getShuntCal());
+                              Serial.printf("SHUNT_TEMP_COEFF: %u ppm\n", ina.getShuntTemperatureCoefficent());
+                              Serial.printf("Temperature:      %.2f C\n", m.temperature_c);
+                              Serial.printf("Current:          %.6f A\n", m.current);
+                              return;
+                            }
+
+                            String sub = args[1];
+                            sub.toLowerCase();
+
+                            if (sub == "cal" && args.size() == 3) {
+                              const uint16_t val = static_cast<uint16_t>(args[2].toInt());
+                              ina.setShuntCal(val);
+                              Preferences prefs;
+                              prefs.begin(kPrefsNamespace, /*readOnly=*/false);
+                              prefs.putUShort("shunt_cal", val);
+                              prefs.end();
+                              Serial.printf("SHUNT_CAL set to %u and saved to NVRAM.\n", val);
+
+                            } else if (sub == "coeff" && args.size() == 3) {
+                              const uint16_t val = static_cast<uint16_t>(args[2].toInt());
+                              ina.setShuntTemperatureCoefficent(val);
+                              Preferences prefs;
+                              prefs.begin(kPrefsNamespace, /*readOnly=*/false);
+                              prefs.putUShort("temp_coeff", val);
+                              prefs.end();
+                              Serial.printf("SHUNT_TEMP_COEFF set to %u ppm and saved to NVRAM.\n", val);
+
+                            } else if (sub == "reset") {
+                              Preferences prefs;
+                              prefs.begin(kPrefsNamespace, /*readOnly=*/false);
+                              prefs.remove("shunt_cal");
+                              prefs.remove("temp_coeff");
+                              prefs.end();
+                              // Reapply firmware defaults
+                              powerSensor->configure(MAX_CURRENT, SHUNT_RESISTANCE);
+                              ina.setShuntTemperatureCoefficent(0);
+                              ina.setTemperatureCompensation(true);
+                              Serial.println("Calibration cleared from NVRAM, firmware defaults restored.");
+
+                            } else {
+                              Serial.println("Usage: tempcal [cal <n> | coeff <n> | reset]");
+                            }
+                          });
 }
 
 void loop() {
+  console.poll();
+
   // Handle Bluetooth connections
   bluetooth.handleConnections();
 
@@ -182,7 +275,9 @@ void loop() {
   // Send data via configured protocols
 #if !DEBUG_INA
 #if ENABLE_SERIAL_OUT
-  serialOutput.out_pld(measurement);
+  if (!console.isActive()) {
+    serialOutput.out_pld(measurement);
+  }
 #endif
 
 #if ENABLE_BLE_OUT

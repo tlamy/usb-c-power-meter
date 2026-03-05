@@ -1,0 +1,9 @@
+---
+BasedOnStyle: Google
+ColumnLimit: 132
+IndentWidth: 2
+AccessModifierOffset: -2
+Standard: Cpp11
+DerivePointerAlignment: false
+PointerAlignment: Left
+...

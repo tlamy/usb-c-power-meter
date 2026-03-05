@@ -361,6 +361,16 @@ float INA228::getShunt() const { return _shunt; }
 
 float INA228::getCurrentLSB() const { return _current_LSB; }
 
+uint16_t INA228::getShuntCal() { return static_cast<uint16_t>(_readRegister(INA228_SHUNT_CAL, 2)); }
+
+void INA228::setShuntCal(const uint16_t value) {
+  _writeRegister(INA228_SHUNT_CAL, value);
+  // Keep current_LSB consistent: inverse of the setMaxCurrentShunt formula.
+  if (_shunt > 0.0F) {
+    _current_LSB = static_cast<float>(value) / (13107200000.0F * _shunt);
+  }
+}
+
 ////////////////////////////////////////////////////////
 //
 //  SHUNT TEMPERATURE COEFFICIENT REGISTER 3
