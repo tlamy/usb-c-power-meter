@@ -8,6 +8,7 @@
 
 #include <Arduino.h>
 #include <U8g2lib.h>
+#include <vector>
 
 #include "PowerSensor.h"
 
@@ -51,6 +52,8 @@ public:
   void drawStrCentered(int line, const char *buf) const;
 
   void splash(const char *version) const;
+
+  void showDiagnostics(const char *version, float shunt, float maxCurrent, const std::vector<std::pair<uint8_t, String>> &devices) const;
 
   void display_measurements(const PowerMeasurement &measurement);
 

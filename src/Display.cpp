@@ -79,6 +79,39 @@ void Display::splash(const char *version) const {
   delay(1500);
 }
 
+void Display::showDiagnostics(const char *version, float shunt, float maxCurrent, const std::vector<std::pair<uint8_t, String>> &devices) const {
+  if (u8g2 == nullptr) return;
+
+  char buf[64];
+  u8g2->setFont(u8g2_font_profont10_tr);
+  int lineHeight = u8g2->getFontAscent() - u8g2->getFontDescent() + 1;
+
+  u8g2->firstPage();
+  do {
+    int y = lineHeight;
+    u8g2->drawStr(0, y, "--- DIAGNOSTICS ---");
+    y += lineHeight;
+
+    sprintf(buf, "V: %s | S: %.3fR", version, shunt);
+    u8g2->drawStr(0, y, buf);
+    y += lineHeight;
+
+    sprintf(buf, "Imax: %.1fA", maxCurrent);
+    u8g2->drawStr(0, y, buf);
+    y += lineHeight;
+
+    u8g2->drawStr(0, y, "I2C Devices:");
+    y += lineHeight;
+
+    for (const auto &dev : devices) {
+      if (y > 64) break;
+      sprintf(buf, " 0x%02X: %s", dev.first, dev.second.c_str());
+      u8g2->drawStr(0, y, buf);
+      y += lineHeight;
+    }
+  } while (u8g2->nextPage());
+}
+
 void Display::screensaver(int *col, int *line) {
   *col = last_x + x_dir;
   if (*col > 127) {
