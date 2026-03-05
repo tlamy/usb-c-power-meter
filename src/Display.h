@@ -45,7 +45,7 @@ public:
 
   ~Display(); // Destructor to clean up the u8g2 instance
 
-  void begin(uint8_t sda, uint8_t scl);
+  void begin(uint8_t sda, uint8_t scl, uint8_t i2cAddress = 0);
 
   void drawStrLeft(int line, const char *buf) const;
   void drawStrRight(int line, const char *buf) const;
@@ -60,6 +60,7 @@ public:
 private:
   int last_display_time = 0;
   int last_valid_time = 0;
+  uint32_t last_active_time = 0;
 };
 
 #endif // USB_POWER_FIRMWARE_ESP8266_DISPLAY_H

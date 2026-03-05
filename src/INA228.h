@@ -94,7 +94,7 @@ public:
 
     bool begin();
 
-    bool isConnected();
+    bool isConnected() const;
 
     uint8_t getAddress() const;
 

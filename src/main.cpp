@@ -2,11 +2,12 @@
 // Copyright (c) 2025 Thomas Lamy
 // SPDX-License-Identifier: MIT
 //
+#include <Arduino.h>
+
 #include "Bluetooth.h"
 #include "Display.h"
 #include "PowerSensor.h"
-#include "SerialData.h" // Include the new Serial.h for the Serial class
-#include <Arduino.h>
+#include "SerialData.h"  // Include the new Serial.h for the Serial class
 
 #define INA_I2C_ADDRESS 0x41
 #define RELEASE_VERSION "2.3.0"
@@ -23,16 +24,35 @@
 
 // Create instances
 SerialData serialOutput(Serial);
-Display *display;
+Display* display;
 uint32_t chipId = ESP.getEfuseMac();
 String deviceName = "MacWake PowerMeter " + String(chipId & 0xffff, HEX);
 Bluetooth bluetooth(deviceName.c_str(), SERVICE_UUID, CHARACTERISTIC_UUID);
-PowerSensor *powerSensor;
+PowerSensor* powerSensor;
 
-#include <vector>
+#include <map>
 #include <utility>
+#include <vector>
 
-void scanI2C(bool diagnostics = false, std::vector<std::pair<uint8_t, String>> *foundDevices = nullptr) {
+static const std::map<uint8_t, String>& i2cDeviceNames() {
+  static const std::map<uint8_t, String> names = {
+      // OLED displays (SSD1306, SH1106, etc.)
+      {0x3C, "Display"},
+      {0x3D, "Display"},
+      // INA power sensors
+      {0x40, "Sensor"},  // INA228/INA226 A1=0, A0=0
+      {0x41, "Sensor"},  // INA228/INA226 A1=0, A0=1
+      {0x44, "Sensor"},  // INA228/INA226 A1=1, A0=0
+      {0x45, "Sensor"},  // INA228/INA226 A1=1, A0=1
+      {0x48, "Sensor"},  // INA3221 A0=GND
+      {0x49, "Sensor"},  // INA3221 A0=VS
+      {0x4A, "Sensor"},  // INA3221 A0=SDA
+      {0x4B, "Sensor"},  // INA3221 A0=SCL
+  };
+  return names;
+}
+
+void scanI2C(bool diagnostics = false, std::vector<std::pair<uint8_t, String>>* foundDevices = nullptr) {
   Serial.println(diagnostics ? "--- I2C Diagnostic Scan ---" : "Scanning I2C bus...");
   int nDevices = 0;
 
@@ -41,18 +61,17 @@ void scanI2C(bool diagnostics = false, std::vector<std::pair<uint8_t, String>> *
     uint8_t error = Wire.endTransmission();
 
     if (error == 0) {
-      String name = "Unknown Device";
-      if (address == INA_I2C_ADDRESS) name = "INA228";
-      else if (address == 0x3C || address == 0x3D) name = "OLED";
-      
+      auto entry = i2cDeviceNames().find(address);
+      String name = (entry != i2cDeviceNames().end()) ? entry->second : "Unknown Device";
+
       Serial.printf("Device found at 0x%02x", address);
       if (diagnostics) {
         Serial.printf(" [%s]", name.c_str());
       }
       Serial.println();
-      
-      if (foundDevices) {
-        foundDevices->push_back({address, name});
+
+      if (foundDevices != nullptr) {
+        foundDevices->emplace_back(address, name);
       }
       nDevices++;
     }
@@ -69,30 +88,36 @@ void runDiagnostics() {
 
   std::vector<std::pair<uint8_t, String>> foundDevices;
   scanI2C(true, &foundDevices);
-  
+
   // Also output to Display if available
-  bool displayFound = false;
+  static constexpr uint8_t kOledAddresses[] = {0x3C, 0x3D};
+  uint8_t displayAddr = 0;
   for (const auto& dev : foundDevices) {
-    if (dev.first == 0x3C || dev.first == 0x3D) {
-      displayFound = true;
-      break;
+    for (uint8_t addr : kOledAddresses) {
+      if (dev.first == addr) {
+        displayAddr = addr;
+        break;
+      }
     }
+    if (displayAddr != 0) { break; }
   }
 
-  if (displayFound) {
-    if (!display) display = new Display();
-    display->begin(SDA_PIN, SCL_PIN);
+  if (displayAddr != 0) {
+    if (display == nullptr) {
+      display = new Display();
+    }
+    display->begin(SDA_PIN, SCL_PIN, displayAddr);
     display->showDiagnostics(RELEASE_VERSION, SHUNT_RESISTANCE, MAX_CURRENT, foundDevices);
   }
 
   Serial.println("*************************************\n");
-  delay(5000); // Give time to read
+  delay(5000);  // Give time to read
 }
 
 void setup() {
   pinMode(DIAG_PIN, INPUT_PULLUP);
   Serial.begin(115200);
-  delay(100); // Wait for Serial and Pin stability
+  delay(100);  // Wait for Serial and Pin stability
 
   if (digitalRead(DIAG_PIN) == LOW) {
     // We need I2C and WiFi partially up for diag info
@@ -157,7 +182,7 @@ void loop() {
   // Send data via configured protocols
 #if !DEBUG_INA
 #if ENABLE_SERIAL_OUT
-  serialOutput.out_pld( measurement);
+  serialOutput.out_pld(measurement);
 #endif
 
 #if ENABLE_BLE_OUT
@@ -168,5 +193,5 @@ void loop() {
   // Update display
   display->display_measurements(measurement);
 
-  //delay(10);
+  // delay(10);
 }

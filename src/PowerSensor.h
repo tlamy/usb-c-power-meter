@@ -22,16 +22,16 @@ struct PowerMeasurement {
 
 class PowerSensor {
 private:
-  INA228 *ina228; // Changed to pointer
+  INA228* ina228;
   uint8_t i2c_address;
-  TwoWire *wire; // Store reference to Wire instance
+  TwoWire* wire;
   bool debug_enabled;
 
 public:
   // Updated constructor to take Wire reference instead of pins
-  PowerSensor(uint8_t address, TwoWire &wireRef, bool debug = false);
+  PowerSensor(uint8_t address, TwoWire& wireRef, bool debug = false);
 
-  ~PowerSensor(); // Added destructor to clean up pointer
+  ~PowerSensor();  // Added destructor to clean up pointer
 
   bool begin();
 
@@ -55,10 +55,10 @@ public:
   double getCharge() const;
 
   // Utility methods
-  static void printMeasurement(const PowerMeasurement &measurement);
+  static void printMeasurement(const PowerMeasurement& measurement);
 
   // Access to underlying INA228 if needed
-  INA228 &getINA228() { return *ina228; }
+  INA228& getINA228() const { return *ina228; }
 };
 
-#endif // USB_POWER_FIRMWARE_ESP8266_POWERSENSOR_H
+#endif  // USB_POWER_FIRMWARE_ESP8266_POWERSENSOR_H

@@ -3,15 +3,20 @@
 // SPDX-License-Identifier: MIT
 //
 #include "Bluetooth.h"
-#include "PowerSensor.h"
+
 #include <BLE2902.h>
 #include <BLEDevice.h>
 
-Bluetooth::Bluetooth(const char *name, const char *serviceId,
-                     const char *characteristicId)
-    : pServer(nullptr), pCharacteristic(nullptr), deviceConnected(false),
-      oldDeviceConnected(false), serviceUUID(serviceId),
-      characteristicUUID(characteristicId), deviceName(name),
+#include "PowerSensor.h"
+
+Bluetooth::Bluetooth(const char* name, const char* serviceId, const char* characteristicId)
+    : pServer(nullptr),
+      pCharacteristic(nullptr),
+      deviceConnected(false),
+      oldDeviceConnected(false),
+      serviceUUID(serviceId),
+      characteristicUUID(characteristicId),
+      deviceName(name),
       serverCallbacks(nullptr) {}
 
 Bluetooth::~Bluetooth() { delete serverCallbacks; }
@@ -32,17 +37,15 @@ bool Bluetooth::begin() {
   pServer->setCallbacks(serverCallbacks);
 
   // Create BLE Service
-  BLEService *pService = pServer->createService(serviceUUID);
+  BLEService* pService = pServer->createService(serviceUUID);
   if (pService == nullptr) {
     Serial.println("Failed to create BLE service");
     return false;
   }
 
   // Create BLE Characteristic
-  pCharacteristic = pService->createCharacteristic(
-      characteristicUUID, BLECharacteristic::PROPERTY_READ |
-                              BLECharacteristic::PROPERTY_WRITE |
-                              BLECharacteristic::PROPERTY_NOTIFY);
+  //  BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY
+  pCharacteristic = pService->createCharacteristic(characteristicUUID, 0b00111);
 
   if (pCharacteristic == nullptr) {
     Serial.println("Failed to create BLE characteristic");
@@ -56,11 +59,11 @@ bool Bluetooth::begin() {
   pService->start();
 
   // Start advertising
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(serviceUUID);
   pAdvertising->setScanResponse(false);
   // set the value to 0x00 to not advertise this parameter
-  pAdvertising->setMinPreferred( 0x0);
+  pAdvertising->setMinPreferred(0x0);
   BLEDevice::startAdvertising();
 
   Serial.println("BLE advertising started. Waiting for client connection...");
@@ -70,8 +73,8 @@ bool Bluetooth::begin() {
 void Bluetooth::handleConnections() {
   // Handle disconnection and restart advertising
   if (!deviceConnected && oldDeviceConnected) {
-    delay(500);                  // Give the bluetooth stack time to get ready
-    pServer->startAdvertising(); // Restart advertising
+    delay(500);                   // Give the bluetooth stack time to get ready
+    pServer->startAdvertising();  // Restart advertising
     // Serial.println("BLE advertising restarted");
     oldDeviceConnected = deviceConnected;
   }
@@ -85,7 +88,7 @@ void Bluetooth::handleConnections() {
 
 bool Bluetooth::isConnected() const { return deviceConnected; }
 
-void Bluetooth::sendData(const PowerMeasurement &measurement) const {
+void Bluetooth::sendData(const PowerMeasurement& measurement) const {
   if (!deviceConnected || pCharacteristic == nullptr) {
     return;
   }
@@ -94,8 +97,7 @@ void Bluetooth::sendData(const PowerMeasurement &measurement) const {
   snprintf(ble_buffer, sizeof(ble_buffer),
            "{\"current\":%f,\"voltage\":%f,\"power\":%f,\"charge\":%f,"
            "\"timestamp\":%lu}",
-           measurement.current, measurement.voltage, measurement.power,
-           measurement.charge, millis());
+           measurement.current, measurement.voltage, measurement.power, measurement.charge, millis());
   ble_buffer[sizeof(ble_buffer) - 1] = '\0';
 
 #ifdef DEBUG_BLE

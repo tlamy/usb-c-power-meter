@@ -71,16 +71,15 @@ bool INA228::begin() {
   return true;
 }
 
-bool INA228::isConnected() {
+bool INA228::isConnected() const {
   _wire->beginTransmission(_address);
   return (_wire->endTransmission() == 0);
 }
 
 uint8_t INA228::getAddress() const { return _address; }
 
-inline float INA228::readSigned20bit(uint8_t registr) {
-  int32_t value =
-      _readRegister(registr, 3) >> 4; // NOLINT(*-narrowing-conversions)
+inline float INA228::readSigned20bit(const uint8_t reg) {
+  int32_t value = _readRegister(reg, 3) >> 4; // NOLINT(*-narrowing-conversions)
   //  handle negative values (20 bit)
   if ((value & 0x00080000) > 0) {
     value |= 0xFFF00000; // NOLINT(*-narrowing-conversions)
@@ -104,7 +103,7 @@ float INA228::getBusVoltage() {
 //  PAGE 25
 float INA228::getShuntVoltage() {
   //  shunt_LSB depends on ADCRANGE in INA228_CONFIG register.
-  float shunt_LSB = this->_ADCRange ? 78.125e-9 : 312.5e-9;
+  const float shunt_LSB = this->_ADCRange ? 78.125e-9 : 312.5e-9;
   const float register_value = this->readSigned20bit(INA228_SHUNT_VOLTAGE);
   return register_value * shunt_LSB;
 }
@@ -127,14 +126,14 @@ float INA228::getCurrent() {
 
 //  PAGE 26 + 8.1.2
 float INA228::getPower() {
-  auto value = static_cast<float>(_readRegister(INA228_POWER, 3));
+  const auto value = static_cast<float>(_readRegister(INA228_POWER, 3));
   //  PAGE 31 (8.1.2)
   return value * 3.2F * _current_LSB;
 }
 
 //  PAGE 25
 float INA228::getTemperature() {
-  uint32_t value = _readRegister(INA228_TEMPERATURE, 2);
+  const uint32_t value = _readRegister(INA228_TEMPERATURE, 2);
   return static_cast<float>(value) * 7.8125e-3F; //  milli degree Celsius
 }
 
@@ -143,7 +142,7 @@ double INA228::getEnergy() {
   //  read 40 bit UNSIGNED as a double to prevent 64 bit integers
   //  double might be 8 or 4 byte, depends on platform
   //  40 bit ==> O(10^12)
-  double value = _readRegisterF(INA228_ENERGY, 'U');
+  const double value = _readRegisterF(INA228_ENERGY, 'U');
   //  PAGE 31 (8.1.2)
   return value * (16 * 3.2) * _current_LSB;
 }
@@ -153,7 +152,7 @@ double INA228::getCharge() {
   //  read 40 bit SIGNED as a float to prevent 64 bit integers
   //  double might be 8 or 4 byte, depends on platform
   //  40 bit ==> O(10^12)
-  double value = _readRegisterF(INA228_CHARGE, 'S');
+  const double value = _readRegisterF(INA228_CHARGE, 'S');
   //  PAGE 32 (8.1.2)
   return value * _current_LSB;
 }
@@ -183,7 +182,7 @@ bool INA228::setAccumulation(uint8_t value) {
 }
 
 bool INA228::getAccumulation() {
-  uint16_t value = _readRegister(INA228_CONFIG, 2);
+  const uint16_t value = _readRegister(INA228_CONFIG, 2);
   return (value & INA228_CFG_RSTACC) > 0;
 }
 
@@ -195,7 +194,7 @@ void INA228::setConversionDelay(uint8_t steps) {
 }
 
 uint8_t INA228::getConversionDelay() {
-  uint16_t value = _readRegister(INA228_CONFIG, 2);
+  const uint16_t value = _readRegister(INA228_CONFIG, 2);
   return (value >> 6) & 0xFF;
 }
 
@@ -210,7 +209,7 @@ void INA228::setTemperatureCompensation(bool enable) {
 }
 
 bool INA228::getTemperatureCompensation() {
-  uint16_t value = _readRegister(INA228_CONFIG, 2);
+  const uint16_t value = _readRegister(INA228_CONFIG, 2);
   return (value & INA228_CFG_TEMPCOMP) > 0;
 }
 
@@ -239,7 +238,7 @@ bool INA228::setADCRange(bool flag) {
 }
 
 bool INA228::getADCRange() {
-  uint16_t value = _readRegister(INA228_CONFIG, 2);
+  const uint16_t value = _readRegister(INA228_CONFIG, 2);
   _ADCRange = (value & INA228_CFG_ADCRANGE) > 0;
   return _ADCRange;
 }
@@ -260,7 +259,7 @@ bool INA228::setMode(uint8_t mode) {
 }
 
 uint8_t INA228::getMode() {
-  uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
+  const uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
   return (value & INA228_ADC_MODE) >> 12;
 }
 
@@ -276,7 +275,7 @@ bool INA228::setBusVoltageConversionTime(uint8_t bvct) {
 }
 
 uint8_t INA228::getBusVoltageConversionTime() {
-  uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
+  const uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
   return (value & INA228_ADC_VBUSCT) >> 9;
 }
 
@@ -324,7 +323,7 @@ bool INA228::setAverage(uint8_t avg) {
 }
 
 uint8_t INA228::getAverage() {
-  uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
+  const uint16_t value = _readRegister(INA228_ADC_CONFIG, 2);
   return (value & INA228_ADC_AVG);
 }
 
@@ -571,7 +570,7 @@ double INA228::_readRegisterF(uint8_t reg, char mode) {
     if (mode == 'U') {
       value = val;
     } else {
-      value = (int32_t)val;
+      value = static_cast<int32_t>(val);
     }
     //  process last byte
     value *= 256;

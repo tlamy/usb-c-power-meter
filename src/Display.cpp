@@ -5,8 +5,7 @@
 
 #include "Display.h"
 
-Display::Display() : u8g2(nullptr) {
-}
+Display::Display() : u8g2(nullptr) {}
 
 // Destructor - clean up the u8g2 instance
 Display::~Display() {
@@ -16,42 +15,50 @@ Display::~Display() {
   }
 }
 
-void Display::begin(uint8_t sda, uint8_t scl) {
+void Display::begin(const uint8_t sda, const uint8_t scl, const uint8_t i2cAddress) {
   // Create the u8g2 instance with the custom SDA and SCL pins
   // U8g2 will use the global Wire instance, but we can specify pins
   u8g2 = new U8G2_SH1106_128X64_NONAME_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE, scl, sda);
+
+  // setI2CAddress expects an 8-bit address (7-bit << 1)
+  if (i2cAddress != 0) {
+    u8g2->setI2CAddress(i2cAddress << 1);
+  }
+
+  last_active_time = millis();
 
   // Initialize the display
   u8g2->begin();
 
   // Reset the current tracking arrays
-  for (float &last_current : last_currents) {
+  for (float& last_current : last_currents) {
     last_current = 0.0;
   }
 
-  for (float &current : currents) {
+  for (float& current : currents) {
     current = 0.0;
   }
 }
 
-void Display::drawStrCentered(int line, const char *buf) const {
+void Display::drawStrCentered(const int line, const char* buf) const {
   if (u8g2 == nullptr) {
     return;
   }
 
-  int width = u8g2->getStrWidth(buf);
+  const int width = u8g2->getStrWidth(buf);
   u8g2->drawStr((128 - width) / 2, line, buf);
 }
 
-void Display::drawStrRight(int line, const char *buf) const {
+void Display::drawStrRight(const int line, const char* buf) const {
   if (u8g2 == nullptr) {
     return;
   }
 
-  int width = u8g2->getStrWidth(buf);
+  const int width = u8g2->getStrWidth(buf);
   u8g2->drawStr(128 - width, line, buf);
 }
-void Display::drawStrLeft(int line, const char *buf) const {
+
+void Display::drawStrLeft(const int line, const char* buf) const {
   if (u8g2 == nullptr) {
     return;
   }
@@ -59,19 +66,17 @@ void Display::drawStrLeft(int line, const char *buf) const {
   u8g2->drawStr(0, line, buf);
 }
 
-void Display::splash(const char *version) const {
+void Display::splash(const char* version) const {
   char buf[64];
   u8g2->firstPage();
   u8g2->setFont(u8g2_font_profont29_tr);
   sprintf(buf, "MacWake");
   u8g2->drawStr((u8g2->getDisplayWidth() - u8g2->getStrWidth(buf)) / 2,
-                (u8g2->getDisplayHeight() / 2) + (u8g2->getFontAscent() / 2),
-                buf);
+                (u8g2->getDisplayHeight() / 2) + (u8g2->getFontAscent() / 2), buf);
   u8g2->setFont(u8g2_font_profont12_tr);
   sprintf(buf, "USB Power Meter");
-  u8g2->drawStr(
-      (u8g2->getDisplayWidth() - u8g2->getStrWidth(buf)) / 2,
-      (u8g2->getDisplayHeight() / 2) + (u8g2->getFontAscent() / 2) + 16, buf);
+  u8g2->drawStr((u8g2->getDisplayWidth() - u8g2->getStrWidth(buf)) / 2,
+                (u8g2->getDisplayHeight() / 2) + (u8g2->getFontAscent() / 2) + 16, buf);
   u8g2->setFont(u8g2_font_profont10_tr);
   sprintf(buf, "V%s", version);
   drawStrCentered(62, buf);
@@ -79,61 +84,66 @@ void Display::splash(const char *version) const {
   delay(1500);
 }
 
-void Display::showDiagnostics(const char *version, float shunt, float maxCurrent, const std::vector<std::pair<uint8_t, String>> &devices) const {
-  if (u8g2 == nullptr) return;
+void Display::showDiagnostics(const char* version, const float shunt, const float maxCurrent,
+                              const std::vector<std::pair<uint8_t, String>>& devices) const {
+  if (u8g2 == nullptr) {
+    return;
+  }
 
   char buf[64];
   u8g2->setFont(u8g2_font_profont10_tr);
-  int lineHeight = u8g2->getFontAscent() - u8g2->getFontDescent() + 1;
+  const int lineHeight = u8g2->getFontAscent() - u8g2->getFontDescent() + 1;
 
   u8g2->firstPage();
   do {
-    int y = lineHeight;
-    u8g2->drawStr(0, y, "--- DIAGNOSTICS ---");
-    y += lineHeight;
+    int line_y = lineHeight;
+    u8g2->drawStr(0, line_y, "--- DIAGNOSTICS ---");
+    line_y += lineHeight;
 
     sprintf(buf, "V: %s | S: %.3fR", version, shunt);
-    u8g2->drawStr(0, y, buf);
-    y += lineHeight;
+    u8g2->drawStr(0, line_y, buf);
+    line_y += lineHeight;
 
     sprintf(buf, "Imax: %.1fA", maxCurrent);
-    u8g2->drawStr(0, y, buf);
-    y += lineHeight;
+    u8g2->drawStr(0, line_y, buf);
+    line_y += lineHeight;
 
-    u8g2->drawStr(0, y, "I2C Devices:");
-    y += lineHeight;
+    u8g2->drawStr(0, line_y, "I2C Devices:");
+    line_y += lineHeight;
 
-    for (const auto &dev : devices) {
-      if (y > 64) break;
+    for (const auto& dev : devices) {
+      if (line_y > 64) {
+        break;
+      }
       sprintf(buf, " 0x%02X: %s", dev.first, dev.second.c_str());
-      u8g2->drawStr(0, y, buf);
-      y += lineHeight;
+      u8g2->drawStr(0, line_y, buf);
+      line_y += lineHeight;
     }
-  } while (u8g2->nextPage());
+  } while (u8g2->nextPage() != 0);
 }
 
-void Display::screensaver(int *col, int *line) {
+void Display::screensaver(int* col, int* line) {
   *col = last_x + x_dir;
   if (*col > 127) {
-    x_dir = -x_dir; // NOLINT(*-narrowing-conversions)
+    x_dir = -x_dir;  // NOLINT(*-narrowing-conversions)
     *col = 126;
   } else if (*col < 0) {
-    x_dir = -x_dir; // NOLINT(*-narrowing-conversions)
+    x_dir = -x_dir;  // NOLINT(*-narrowing-conversions)
     *col = 0;
   }
   *line = last_y + y_dir;
   if (*line > 63) {
-    y_dir = -y_dir; // NOLINT(*-narrowing-conversions)
+    y_dir = -y_dir;  // NOLINT(*-narrowing-conversions)
     *line = 62;
   } else if (*line < 0) {
-    y_dir = -y_dir; // NOLINT(*-narrowing-conversions)
+    y_dir = -y_dir;  // NOLINT(*-narrowing-conversions)
     *line = 0;
   }
   last_x = *col;
   last_y = *line;
 }
 
-static uint8_t normalize_volt(float voltage) {
+static uint8_t normalize_volt(const float voltage) {
   if (voltage < 1.0) {
     return 0;
   }
@@ -158,10 +168,10 @@ static uint8_t normalize_volt(float voltage) {
   return 48;
 }
 
-float Display::get_max_current(float current, uint8_t volts) {
+float Display::get_max_current(const float current, const uint8_t volts) {
   if (volts != last_volts) {
     current_ptr = 0;
-    for (float &last_current : last_currents) {
+    for (float& last_current : last_currents) {
       last_current = 0.0;
     }
     last_volts = volts;
@@ -182,7 +192,7 @@ float Display::get_max_current(float current, uint8_t volts) {
   return max_current;
 }
 
-void Display::display_measurements(const PowerMeasurement &measurement) {
+void Display::display_measurements(const PowerMeasurement& measurement) {
   char buf[32];
   char buf2[32];
 
@@ -201,7 +211,7 @@ void Display::display_measurements(const PowerMeasurement &measurement) {
     display_current = measurement.current;
     display_power = measurement.power;
   }
-  auto maxcurrent = get_max_current(measurement.current, volt_norm);
+  const auto maxcurrent = get_max_current(measurement.current, volt_norm);
 
   // Calculate bar scale
   float bar_maxcurrent;
@@ -217,18 +227,23 @@ void Display::display_measurements(const PowerMeasurement &measurement) {
     bar_maxcurrent = ceil(maxcurrent);
   }
 
+  if (measurement.current > 0.001F) {
+    last_active_time = millis();
+  }
+  const bool showScreensaver = (millis() - last_active_time) >= 30000;
+
   u8g2->firstPage();
   do {
-    if (volt_norm == 0) {
+    if (showScreensaver) {
       int col;
       int row;
       screensaver(&col, &row);
       u8g2->drawPixel(col, row);
     } else {
       u8g2->setFont(u8g2_font_profont17_tr);
-      signed char y_top = u8g2->getFontAscent();
-      u8g2_uint_t y_line2 = 31;
-      u8g2_uint_t y_bar = 36;
+      const signed char y_top = u8g2->getFontAscent();
+      const u8g2_uint_t y_line2 = 31;
+      const u8g2_uint_t y_bar = 36;
       sprintf(buf, "%dV", volt_norm);
       u8g2->drawStr(0, y_top, buf);
       // } else if (volt_norm == 5) {
@@ -249,7 +264,7 @@ void Display::display_measurements(const PowerMeasurement &measurement) {
       sprintf(buf, "%0.3fW", display_power);
       drawStrRight(y_top, buf);
 
-      float amps = display_current;
+      const float amps = display_current;
       u8g2->setFont(u8g2_font_profont12_tr);
 
       sprintf(buf, "Max:%0.3fA", maxcurrent);
