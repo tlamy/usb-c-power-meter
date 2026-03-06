@@ -57,8 +57,15 @@ public:
   // Utility methods
   static void printMeasurement(const PowerMeasurement& measurement);
 
+  // Shunt offset correction (subtracted from raw shunt_mv before zero-normalization)
+  void setShuntOffset(float offsetMv) { _shuntOffsetMv = offsetMv; }
+  float getShuntOffset() const { return _shuntOffsetMv; }
+
   // Access to underlying INA228 if needed
   INA228& getINA228() const { return *ina228; }
+
+private:
+  float _shuntOffsetMv = 0.0F;
 };
 
 #endif  // USB_POWER_FIRMWARE_ESP8266_POWERSENSOR_H

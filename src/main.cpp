@@ -12,9 +12,9 @@
 #include "SerialData.h"  // Include the new Serial.h for the Serial class
 
 #define INA_I2C_ADDRESS 0x41
-#define RELEASE_VERSION "2.3.0"
+#define RELEASE_VERSION "2.3.1"
 #define SHUNT_RESISTANCE 0.010
-#define MAX_CURRENT 10.0
+#define MAX_CURRENT 16.0
 #define DIAG_PIN 10
 #define DEBUG_INA 0
 #define DEBUG_BLE 0
@@ -125,6 +125,7 @@ static void applyStoredCalibration() {
   prefs.begin(kPrefsNamespace, /*readOnly=*/true);
   const uint16_t shuntCal = prefs.getUShort("shunt_cal", kPrefsNotSet);
   const uint16_t tempCoeff = prefs.getUShort("temp_coeff", kPrefsNotSet);
+  const float shuntOffset = prefs.getFloat("shunt_off_mv", 0.0F);
   prefs.end();
 
   INA228& ina = powerSensor->getINA228();
@@ -137,6 +138,11 @@ static void applyStoredCalibration() {
     Serial.printf("NVRAM: SHUNT_TEMP_COEFF = %u ppm\n", tempCoeff);
   }
   ina.setTemperatureCompensation(true);
+
+  if (shuntOffset != 0.0F) {
+    powerSensor->setShuntOffset(shuntOffset);
+    Serial.printf("NVRAM: SHUNT_OFFSET = %.4f mV\n", shuntOffset);
+  }
 }
 
 void setup() {
@@ -254,6 +260,44 @@ void setup() {
                             } else {
                               Serial.println("Usage: tempcal [cal <n> | coeff <n> | reset]");
                             }
+                          });
+
+  console.registerCommand("zerocal", "calibrate shunt zero offset (remove load first)  |  zerocal [reset]",
+                          [](const SerialConsole::Args& args) {
+                            if (args.size() == 2 && args[1] == "reset") {
+                              powerSensor->setShuntOffset(0.0F);
+                              Preferences prefs;
+                              prefs.begin(kPrefsNamespace, /*readOnly=*/false);
+                              prefs.remove("shunt_off_mv");
+                              prefs.end();
+                              Serial.println("Shunt offset cleared.");
+                              return;
+                            }
+
+                            // Take 10 raw measurements (offset cleared temporarily)
+                            const float savedOffset = powerSensor->getShuntOffset();
+                            powerSensor->setShuntOffset(0.0F);
+
+                            Serial.println("Measuring shunt offset (10 samples)...");
+                            float sum = 0.0F;
+                            for (int i = 0; i < 10; i++) {
+                              sum += powerSensor->getShuntMilliVolts();
+                              delay(50);
+                            }
+                            const float offset = sum / 10.0F;
+
+                            if (fabsf(offset) > 5.0F) {
+                              Serial.printf("Offset %.4f mV out of range (>5 mV) — not saved. Check for load.\n", offset);
+                              powerSensor->setShuntOffset(savedOffset);
+                              return;
+                            }
+
+                            powerSensor->setShuntOffset(offset);
+                            Preferences prefs;
+                            prefs.begin(kPrefsNamespace, /*readOnly=*/false);
+                            prefs.putFloat("shunt_off_mv", offset);
+                            prefs.end();
+                            Serial.printf("Shunt offset = %.4f mV saved.\n", offset);
                           });
 }
 

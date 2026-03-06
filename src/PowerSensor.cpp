@@ -60,6 +60,14 @@ PowerMeasurement PowerSensor::readMeasurement() const {
   measurement.temperature_c = getTemperature();
   measurement.valid = true;
 
+  // Apply stored shunt offset (zero-calibration)
+  if (_shuntOffsetMv != 0.0F) {
+    measurement.shunt_mv -= _shuntOffsetMv;
+    measurement.current -= _shuntOffsetMv / 1000.0F / ina228->getShunt();
+    measurement.power = measurement.current * measurement.voltage;
+  }
+
+  // Zero-normalize below noise floor
   if (fabsf(measurement.shunt_mv) <= 0.015F) {
     measurement.current = 0.0F;
     measurement.power = 0.0F;

@@ -72,11 +72,11 @@ void Display::splash(const char* version) const {
   u8g2->setFont(u8g2_font_profont29_tr);
   sprintf(buf, "MacWake");
   u8g2->drawStr((u8g2->getDisplayWidth() - u8g2->getStrWidth(buf)) / 2,
-                (u8g2->getDisplayHeight() / 2) + (u8g2->getFontAscent() / 2), buf);
+                (u8g2->getDisplayHeight() / 3) + (u8g2->getFontAscent() / 2), buf);
   u8g2->setFont(u8g2_font_profont12_tr);
   sprintf(buf, "USB Power Meter");
   u8g2->drawStr((u8g2->getDisplayWidth() - u8g2->getStrWidth(buf)) / 2,
-                (u8g2->getDisplayHeight() / 2) + (u8g2->getFontAscent() / 2) + 16, buf);
+                (u8g2->getDisplayHeight() / 3) + (u8g2->getFontAscent() / 2) + 16, buf);
   u8g2->setFont(u8g2_font_profont10_tr);
   sprintf(buf, "V%s", version);
   drawStrCentered(62, buf);
