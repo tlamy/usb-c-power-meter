@@ -6973,16 +6973,6 @@
 	)
 	(wire
 		(pts
-			(xy 46.99 53.34) (xy 46.99 49.53)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "6c6a1bef-55d6-4001-b1b5-430769d7080c")
-	)
-	(wire
-		(pts
 			(xy 54.61 167.64) (xy 62.23 167.64)
 		)
 		(stroke
@@ -8653,6 +8643,16 @@
 	)
 	(wire
 		(pts
+			(xy 46.99 49.53) (xy 46.99 53.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ec16f66e-7615-4276-aee3-367ee702d837")
+	)
+	(wire
+		(pts
 			(xy 195.58 66.04) (xy 204.47 66.04)
 		)
 		(stroke
@@ -9080,6 +9080,16 @@
 			(justify left bottom)
 		)
 		(uuid "df2b808a-2f93-4853-afad-15deb4de1512")
+	)
+	(label "MPCOMP_RC"
+		(at 46.99 50.8 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "e8bdd5dd-fc3d-44de-8c8a-feb022cec7d3")
 	)
 	(label "SHNT+"
 		(at 182.88 104.14 90)
@@ -11109,7 +11119,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "33k"
+		(property "Value" "56k"
 			(at 26.67 44.958 90)
 			(effects
 				(font
@@ -11555,7 +11565,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "27pF"
+		(property "Value" "15pF"
 			(at 62.738 181.356 0)
 			(effects
 				(font
@@ -11826,7 +11836,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "1pF"
+		(property "Value" "1.2p"
 			(at 134.874 138.43 90)
 			(effects
 				(font
@@ -12718,21 +12728,21 @@
 		(dnp no)
 		(uuid "64364a19-822d-4a12-9024-130fcadb60c8")
 		(property "Reference" "C12"
-			(at 90.678 73.406 0)
+			(at 93.98 74.93 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
+				(justify right bottom)
 			)
 		)
-		(property "Value" "10µ"
-			(at 89.916 78.994 0)
+		(property "Value" "22µ"
+			(at 93.98 77.47 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
+				(justify right top)
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
@@ -15874,7 +15884,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "2.7nH"
+		(property "Value" "3.9nH"
 			(at 132.588 141.224 0)
 			(effects
 				(font
@@ -16297,7 +16307,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "1pF"
+		(property "Value" "2.2p"
 			(at 128.778 138.176 90)
 			(effects
 				(font
@@ -17212,21 +17222,21 @@
 		(dnp no)
 		(uuid "cee22457-03a7-47c3-b9e6-fd425cd1afe4")
 		(property "Reference" "C11"
-			(at 84.328 73.406 0)
+			(at 87.63 74.93 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
+				(justify right bottom)
 			)
 		)
-		(property "Value" "10µ"
-			(at 83.566 78.994 0)
+		(property "Value" "22µ"
+			(at 87.63 77.47 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
+				(justify right top)
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
@@ -17656,7 +17666,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "27pF"
+		(property "Value" "15pF"
 			(at 59.69 181.356 0)
 			(effects
 				(font
@@ -18325,7 +18335,7 @@
 		(dnp no)
 		(uuid "ef9c9a98-64a9-4297-b92e-417959be3961")
 		(property "Reference" "C10"
-			(at 47.498 70.866 0)
+			(at 46.736 71.12 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18951,7 +18961,7 @@
 		(dnp no)
 		(uuid "f7908220-8384-4738-b034-6ff15e87822a")
 		(property "Reference" "R10"
-			(at 123.19 75.946 0)
+			(at 118.618 73.66 90)
 			(effects
 				(font
 					(size 1.27 1.27)
