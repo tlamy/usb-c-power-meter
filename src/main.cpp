@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: MIT
 //
 #include <Arduino.h>
+#include <ArduinoOTA.h>
 #include <Preferences.h>
+#include <WiFi.h>
+#include <WiFiManager.h>
 
 #include "Bluetooth.h"
 #include "Display.h"
@@ -119,6 +122,69 @@ void runDiagnostics() {
 
 static constexpr uint16_t kPrefsNotSet = 0xFFFF;
 static constexpr const char* kPrefsNamespace = "ina228";
+static constexpr const char* kWifiNamespace = "wifi";
+
+static bool otaInitialized = false;
+static bool wifiApMode = false;
+static WiFiManager* wifiPortal = nullptr;
+static uint32_t wifiPortalStartMs = 0;
+static constexpr uint32_t kPortalTimeoutMs = 120000;
+
+static void saveWifiCredentials(const String& ssid, const String& password) {
+  Preferences prefs;
+  prefs.begin(kWifiNamespace, /*readOnly=*/false);
+  prefs.putString("ssid", ssid);
+  prefs.putString("password", password);
+  prefs.end();
+}
+
+static bool loadWifiCredentials(String& ssid, String& password) {
+  Preferences prefs;
+  prefs.begin(kWifiNamespace, /*readOnly=*/true);
+  ssid = prefs.getString("ssid", "");
+  password = prefs.getString("password", "");
+  prefs.end();
+  return ssid.length() > 0;
+}
+
+static void setupOTA() {
+  ArduinoOTA.setHostname(deviceName.c_str());
+  ArduinoOTA.onStart([]() {
+    String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
+    Serial.printf("OTA: updating %s\n", type.c_str());
+  });
+  ArduinoOTA.onEnd([]() { Serial.println("OTA: done"); });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("OTA: %u%%\r", progress / (total / 100));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    const char* msg = "unknown";
+    if (error == OTA_AUTH_ERROR) msg = "auth failed";
+    else if (error == OTA_BEGIN_ERROR) msg = "begin failed";
+    else if (error == OTA_CONNECT_ERROR) msg = "connect failed";
+    else if (error == OTA_RECEIVE_ERROR) msg = "receive failed";
+    else if (error == OTA_END_ERROR) msg = "end failed";
+    Serial.printf("OTA error: %s\n", msg);
+  });
+}
+
+static void startWifi() {
+  String ssid, password;
+  if (loadWifiCredentials(ssid, password)) {
+    wifiApMode = false;
+    WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
+    WiFi.begin(ssid.c_str(), password.c_str());
+    Serial.printf("WiFi: connecting to '%s'...\n", ssid.c_str());
+  } else {
+    wifiApMode = true;
+    const String apName = "PowerMeter-" + String(chipId & 0xffff, HEX);
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(apName.c_str());
+    Serial.printf("WiFi: no credentials — AP '%s' started. IP: %s\n",
+                  apName.c_str(), WiFi.softAPIP().toString().c_str());
+  }
+}
 
 static void applyStoredCalibration() {
   Preferences prefs;
@@ -192,6 +258,10 @@ void setup() {
     Serial.println("Failed to initialize Bluetooth!");
     // Continue without BLE
   }
+
+  // Start WiFi (non-blocking) and configure OTA handlers
+  startWifi();
+  setupOTA();
 
   // Show splash screen
   Serial.println("Showing splash");
@@ -299,10 +369,112 @@ void setup() {
                             prefs.end();
                             Serial.printf("Shunt offset = %.4f mV saved.\n", offset);
                           });
+
+  console.registerCommand("wifiscan", "scan for WiFi access points", [](const SerialConsole::Args&) {
+    Serial.println("Scanning...");
+    const int n = WiFi.scanNetworks();
+    if (n == 0) {
+      Serial.println("No networks found.");
+      return;
+    }
+    Serial.printf("%-32s  %4s  %s\n", "SSID", "RSSI", "Enc");
+    Serial.println("----------------------------------------------------------------");
+    for (int i = 0; i < n; i++) {
+      const char* enc = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? "open" : "WPA";
+      Serial.printf("%-32s  %3d dBm  %s\n", WiFi.SSID(i).c_str(), WiFi.RSSI(i), enc);
+    }
+    WiFi.scanDelete();
+  });
+
+  console.registerCommand("wifi", "manage WiFi  |  wifi [<ssid> <pass> | clear | setup | status]",
+                          [](const SerialConsole::Args& args) {
+                            const String sub = (args.size() >= 2) ? args[1] : "";
+
+                            if (args.size() == 1 || sub == "status") {
+                              String ssid, password;
+                              const bool hasCreds = loadWifiCredentials(ssid, password);
+                              Serial.printf("WiFi status : %s\n",
+                                            WiFi.status() == WL_CONNECTED ? "connected" : "disconnected");
+                              if (WiFi.status() == WL_CONNECTED) {
+                                Serial.printf("IP address  : %s\n", WiFi.localIP().toString().c_str());
+                              }
+                              Serial.printf("Stored SSID : %s\n", hasCreds ? ssid.c_str() : "(none)");
+                              Serial.printf("OTA ready   : %s\n", otaInitialized ? "yes" : "no");
+
+                            } else if (args.size() == 3) {
+                              // wifi <ssid> <password>
+                              saveWifiCredentials(args[1], args[2]);
+                              Serial.printf("WiFi credentials saved (SSID: %s). Reconnecting...\n", args[1].c_str());
+                              otaInitialized = false;
+                              WiFi.disconnect();
+                              startWifi();
+
+                            } else if (sub == "clear") {
+                              Preferences prefs;
+                              prefs.begin(kWifiNamespace, /*readOnly=*/false);
+                              prefs.clear();
+                              prefs.end();
+                              WiFi.disconnect();
+                              otaInitialized = false;
+                              Serial.println("WiFi credentials cleared. Switching to AP mode.");
+                              startWifi();
+
+                            } else if (sub == "setup") {
+                              if (wifiPortal != nullptr) {
+                                Serial.println("Portal already active. Connect to AP and open 192.168.4.1");
+                                return;
+                              }
+                              WiFi.disconnect();
+                              otaInitialized = false;
+                              wifiPortal = new WiFiManager();
+                              wifiPortal->setConfigPortalBlocking(false);
+                              wifiPortalStartMs = millis();
+                              String apName = "PowerMeter-" + String(chipId & 0xffff, HEX);
+                              wifiPortal->startConfigPortal(apName.c_str());
+                              Serial.printf("Portal AP '%s' active (120s). Connect and open 192.168.4.1\n",
+                                            apName.c_str());
+
+                            } else {
+                              Serial.println("Usage: wifi [<ssid> <pass> | clear | setup | status]");
+                            }
+                          });
 }
 
 void loop() {
   console.poll();
+
+  // Service non-blocking WifiManager portal
+  if (wifiPortal != nullptr) {
+    wifiPortal->process();
+    if (WiFi.status() == WL_CONNECTED) {
+      saveWifiCredentials(wifiPortal->getWiFiSSID(), wifiPortal->getWiFiPass());
+      Serial.printf("WiFi configured. SSID: %s  IP: %s\n",
+                    wifiPortal->getWiFiSSID().c_str(), WiFi.localIP().toString().c_str());
+      delete wifiPortal;
+      wifiPortal = nullptr;
+      // OTA will start on next connected check below
+    } else if (millis() - wifiPortalStartMs > kPortalTimeoutMs) {
+      Serial.println("WifiManager portal timed out.");
+      delete wifiPortal;
+      wifiPortal = nullptr;
+      startWifi();
+    }
+  }
+
+  // Start OTA when WiFi is ready: immediately in AP mode, or once connected in STA mode
+  const bool wifiReady = wifiApMode || (WiFi.status() == WL_CONNECTED);
+  if (wifiPortal == nullptr && wifiReady) {
+    if (!otaInitialized) {
+      ArduinoOTA.begin();
+      otaInitialized = true;
+      const String ip = wifiApMode ? WiFi.softAPIP().toString() : WiFi.localIP().toString();
+      Serial.printf("OTA ready. IP: %s\n", ip.c_str());
+    }
+    ArduinoOTA.handle();
+  } else if (otaInitialized && !wifiReady) {
+    // STA WiFi dropped — re-arm so OTA restarts on reconnect
+    otaInitialized = false;
+  }
 
   // Handle Bluetooth connections
   bluetooth.handleConnections();
