@@ -244,7 +244,7 @@ void Display::display_measurements(const PowerMeasurement& measurement) {
       const signed char y_top = u8g2->getFontAscent();
       const u8g2_uint_t y_line2 = 31;
       const u8g2_uint_t y_bar = 36;
-      sprintf(buf, "%dV", volt_norm);
+      sprintf(buf, "%6.3fV", measurement.voltage);
       u8g2->drawStr(0, y_top, buf);
       // } else if (volt_norm == 5) {
       //     u8g2->drawStr(10, 17, "5V");
