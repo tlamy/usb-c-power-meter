@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP PTS647SN70SMTR2N_LFS
+D Tactile Switch SPST-NO Top Actuated Surface Mount 0.05A 12V
+K
+F https://www.ckswitches.com/media/2567/pts647.pdf
+$ENDCMP
+#
+#End Doc Library
