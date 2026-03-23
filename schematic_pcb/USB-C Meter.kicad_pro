@@ -37,9 +37,9 @@
         "other_text_thickness": 0.15,
         "other_text_upright": false,
         "pads": {
-          "drill": 0.0,
-          "height": 0.5,
-          "width": 0.63
+          "drill": 1.0,
+          "height": 1.7,
+          "width": 1.7
         },
         "silk_line_width": 0.1,
         "silk_text_italic": false,
@@ -60,7 +60,23 @@
       ],
       "drc_exclusions": [
         [
-          "starved_thermal|71035165|53639006|aa51576c-d9a2-4d96-8590-66fca717d89c|78f9cbdb-650e-421f-8e21-b6391f33e649|F.Cu",
+          "clearance|89250000|30660000|4868ea4b-10f3-4372-a279-6c69c21d6e18|b7d1489b-00d5-4cca-a3e8-d431ea44c137",
+          ""
+        ],
+        [
+          "clearance|91170000|30910000|3fc22e14-97c6-4915-8487-62b062784791|b7d1489b-00d5-4cca-a3e8-d431ea44c137",
+          ""
+        ],
+        [
+          "shorting_items|89250000|30660000|37360481-f6cf-4e3a-b920-2d8f001293df|b7d1489b-00d5-4cca-a3e8-d431ea44c137",
+          ""
+        ],
+        [
+          "shorting_items|91485000|30910000|af13f19f-5ee8-4ad6-90fa-b5c6bde92fb2|b7d1489b-00d5-4cca-a3e8-d431ea44c137",
+          ""
+        ],
+        [
+          "solder_mask_bridge|91170000|30910000|b7d1489b-00d5-4cca-a3e8-d431ea44c137|3fc22e14-97c6-4915-8487-62b062784791",
           ""
         ]
       ],
@@ -141,7 +157,7 @@
         "min_silk_clearance": 0.0,
         "min_text_height": 0.8,
         "min_text_thickness": 0.08,
-        "min_through_hole_diameter": 0.3,
+        "min_through_hole_diameter": 0.2,
         "min_track_width": 0.0,
         "min_via_annular_width": 0.1,
         "min_via_diameter": 0.5,
@@ -500,14 +516,14 @@
         "wire_width": 6
       },
       {
-        "clearance": 0.2,
+        "clearance": 0.18,
         "diff_pair_gap": 0.25,
         "diff_pair_width": 0.2,
         "microvia_diameter": 0.3,
         "microvia_drill": 0.1,
         "name": "3V3",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
-        "priority": 0,
+        "priority": 1,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.3,
         "via_diameter": 0.6,
@@ -521,7 +537,7 @@
         "microvia_drill": 0.1,
         "name": "High Power",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
-        "priority": 2,
+        "priority": 3,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 2.4,
         "via_diameter": 1.0,
@@ -535,9 +551,15 @@
         "microvia_drill": 0.1,
         "name": "RF",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
-        "priority": 1,
+        "priority": 2,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.322163
+      },
+      {
+        "name": "USB_Data",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "priority": 0,
+        "schematic_color": "rgba(0, 0, 0, 0.000)"
       }
     ],
     "meta": {
@@ -561,6 +583,18 @@
       {
         "netclass": "3V3",
         "pattern": "3V3"
+      },
+      {
+        "netclass": "3V3",
+        "pattern": "3V3_FLT"
+      },
+      {
+        "netclass": "USB_Data",
+        "pattern": "D+"
+      },
+      {
+        "netclass": "USB_Data",
+        "pattern": "D-"
       }
     ]
   },
