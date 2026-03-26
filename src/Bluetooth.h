@@ -45,11 +45,13 @@ private:
     ServerCallbacks *serverCallbacks = nullptr;
 
 public:
+    Bluetooth(const char *serviceId, const char *characteristicId);
     Bluetooth(const char *name, const char *serviceId, const char *characteristicId);
 
     ~Bluetooth();
 
     bool begin();
+    bool begin(const char *name);
 
     void handleConnections();
 

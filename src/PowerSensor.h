@@ -35,6 +35,8 @@ public:
 
   bool begin();
 
+  bool verifyReady() const;
+
   bool isConnected() const;
 
   void configure(float maxCurrent = 10.0, float shuntResistance = 10e-3) const;

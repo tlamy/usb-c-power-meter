@@ -28,9 +28,7 @@
 SerialData serialOutput(Serial);
 SerialConsole console(Serial);
 Display* display;
-uint32_t chipId = ESP.getEfuseMac();
-String deviceName = "MacWake PowerMeter " + String(chipId & 0xffff, HEX);
-Bluetooth bluetooth(deviceName.c_str(), SERVICE_UUID, CHARACTERISTIC_UUID);
+Bluetooth bluetooth(SERVICE_UUID, CHARACTERISTIC_UUID);
 PowerSensor* powerSensor;
 
 #include <map>
@@ -176,19 +174,45 @@ void setup() {
 
   powerSensor = new PowerSensor(INA_I2C_ADDRESS, Wire, DEBUG_INA);
 
-  // Initialize power sensor
-  if (!powerSensor->begin()) {
-    Serial.println("Failed to initialize PowerSensor!");
+  // Initialize power sensor with retries if verification fails
+  bool sensorOk = false;
+  for (int retry = 0; retry < 3; retry++) {
+    if (retry > 0) {
+      Serial.printf("INA228 retry %d...\n", retry);
+      delay(500);
+    }
+    
+    if (powerSensor->begin()) {
+      // Configure power sensor, then apply any stored calibration overrides
+      powerSensor->configure(MAX_CURRENT, SHUNT_RESISTANCE);
+      applyStoredCalibration();
+
+      // Verify sensor readiness
+      if (powerSensor->verifyReady()) {
+        sensorOk = true;
+        break;
+      }
+    }
   }
 
-  // Configure power sensor, then apply any stored calibration overrides
-  powerSensor->configure(MAX_CURRENT, SHUNT_RESISTANCE);
-  applyStoredCalibration();
+  if (!sensorOk) {
+    Serial.println("INA228 startup check FAILED after retries!");
+  } else {
+    Serial.println("INA228 status OK.");
+  }
 
   // scanI2C();
-
   // Initialize Bluetooth
-  if (!bluetooth.begin()) {
+  uint64_t chipId = ESP.getEfuseMac();
+  uint8_t mac[6];
+  memcpy(mac, &chipId, 6);
+  char buf[5];
+  // ESP.getEfuseMac() returns bytes in reverse order (mac[0] is the first byte of MAC)
+  // We want the last two bytes of MAC address (e.g., DC:B4:D9:99:E0:92 -> E092),
+  // so we use mac[4] and mac[5].
+  sprintf(buf, "%02X%02X", mac[4], mac[5]);
+  String deviceName = "MacWake PowerMeter " + String(buf);
+  if (!bluetooth.begin(deviceName.c_str())) {
     Serial.println("Failed to initialize Bluetooth!");
     // Continue without BLE
   }
@@ -302,6 +326,15 @@ void setup() {
 }
 
 void loop() {
+  static unsigned long lastLoopTime = 0;
+  const unsigned long loopInterval = 33;  // 33 ms = 30 Hz
+  const unsigned long now = millis();
+
+  if (now - lastLoopTime < loopInterval) {
+    return;
+  }
+  lastLoopTime = now;
+
   console.poll();
 
   // Handle Bluetooth connections
@@ -312,7 +345,7 @@ void loop() {
 
   if (!measurement.valid) {
     Serial.println("Failed to read power measurement");
-    delay(100);
+    delay(1000);
     return;
   }
 
@@ -327,6 +360,8 @@ void loop() {
 #if ENABLE_BLE_OUT
   bluetooth.sendData(measurement);
 #endif
+#else
+    powerSensor->printMeasurement(measurement);
 #endif
 
   // Update display

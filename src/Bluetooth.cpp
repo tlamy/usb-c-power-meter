@@ -9,6 +9,16 @@
 
 #include "PowerSensor.h"
 
+Bluetooth::Bluetooth(const char* serviceId, const char* characteristicId)
+    : pServer(nullptr),
+      pCharacteristic(nullptr),
+      deviceConnected(false),
+      oldDeviceConnected(false),
+      serviceUUID(serviceId),
+      characteristicUUID(characteristicId),
+      deviceName(nullptr),
+      serverCallbacks(nullptr) {}
+
 Bluetooth::Bluetooth(const char* name, const char* serviceId, const char* characteristicId)
     : pServer(nullptr),
       pCharacteristic(nullptr),
@@ -21,9 +31,18 @@ Bluetooth::Bluetooth(const char* name, const char* serviceId, const char* charac
 
 Bluetooth::~Bluetooth() { delete serverCallbacks; }
 
-bool Bluetooth::begin() {
+bool Bluetooth::begin() { return begin(deviceName); }
+
+bool Bluetooth::begin(const char* name) {
   // Initialize BLE Device
+  if (name != nullptr) {
+    deviceName = name;
+  }
   BLEDevice::init(deviceName);
+
+  // Set lower TX power to improve EMI and performance
+  // ESP_PWR_LVL_N12 corresponds to -12dBm. Default is typically ESP_PWR_LVL_P3 (+3dBm).
+  BLEDevice::setPower(ESP_PWR_LVL_N12);
 
   // Create BLE Server
   pServer = BLEDevice::createServer();

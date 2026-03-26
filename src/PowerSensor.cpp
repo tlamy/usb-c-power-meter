@@ -29,6 +29,36 @@ bool PowerSensor::begin() {
   return true;
 }
 
+bool PowerSensor::verifyReady() const {
+  if (ina228 == nullptr) {
+    return false;
+  }
+
+  bool ok = true;
+  float temp = getTemperature();
+  if (temp <= 0.0F) {
+    Serial.printf("INA228 Error: Unexpected temperature reading: %.2f C\n", temp);
+    ok = false;
+  }
+
+  // Check SHUNT_CAL register matches (it's updated by setMaxCurrentShunt or setShuntCal)
+  uint16_t shuntCal = ina228->getShuntCal();
+  if (shuntCal == 0) {
+    Serial.println("INA228 Error: SHUNT_CAL is zero (uncalibrated)!");
+    ok = false;
+  }
+
+  // Check Manufacture ID and Device ID to ensure we're talking to an actual INA228
+  uint16_t manId = ina228->getManufacturer();
+  uint16_t dieId = ina228->getDieID();
+  if (manId != 0x5449 || dieId != 0x0228) {
+    Serial.printf("INA228 Error: Device ID mismatch (Man: 0x%04X, Die: 0x%04X, Expected: 0x5449, 0x0228)\n", manId, dieId);
+    ok = false;
+  }
+
+  return ok;
+}
+
 bool PowerSensor::isConnected() const {
   if (ina228 == nullptr) {
     return false;
@@ -49,6 +79,8 @@ PowerMeasurement PowerSensor::readMeasurement() const {
   measurement.valid = false;
 
   if (ina228 == nullptr || !ina228->isConnected()) {
+      Serial.println("INA228 not connected!");
+      delay(200);
     return measurement;
   }
 
